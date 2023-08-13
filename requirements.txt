@@ -1,0 +1,5 @@
+streamlit==1.25.0
+streamlit-lottie==0.0.3
+pillow==9.4.0
+plotly==5.15.0
+pymongo==4.4.0
