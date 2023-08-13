@@ -4,7 +4,7 @@ from PIL import Image
 
 # Load the assets for the app
 img_path = Path(__file__).parents[0]
-claan_img = Image.open(f"{img_path}/Page_Images/Flame-dancers-hex.png")
+claan_img = Image.open(f"{img_path}/Page_Images/Wave-riders-hex.png")
 
 # Set the page title and icon and set layout to "wide" to minimise margains
 st.set_page_config(page_title="Wave Riders", page_icon=":ocean:")
