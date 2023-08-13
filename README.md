@@ -15,21 +15,16 @@ Every fortnight there will be a list of activites and challenges published to th
 Each time you complete one of these challenges or activities you can log it in the portal and earn a dice for you Claan. At the end of the fortnight you will have accumulated a pool of dice equal to the number of activities and challenges completed by the Claan.
 
 The Claan will then roll the accumulated dice and convert the results into points! Best prepare your shrine to lady luck and make an offering in Tymora's name.
-{{note
-##### Upgrading the Claan Dice
+
+#### Upgrading the Claan Dice
 The base Claan dice will be a D4, but for each different member of the Claan who contributes in a given fortnight the dice will go up one step. 
 
 D4 -> D6 -> D8 -> D10 -> D12 -> D20
 
 In order to maximise you score you will need 6 people in the Claan to complete at least one challenge or activity each week, so work as a team to make sure everyone is involved!
-}}
 
+![image](https://i.imgur.com/TUUgl7A.jpg)
 
-
-![image](https://i.imgur.com/TUUgl7A.jpg) {position:absolute,top:60px,right:50px,width:390px}
-
-\column
-:::::::::::::::::::::::::::::::::::
 ### The Claan Portal
 To make it even easier to contribute to your Claan, track your dice pool, and see your Claan upgrades Claan Chaaos will come complete with a shiny new web portal! This can be found at [here](https://claan-chaaos.streamlit.app)! This means you can contribute to your claan from anywhere, any time, even from mobile!
 
@@ -40,12 +35,7 @@ This season, time waits for no-one! Challenges and activities will be up for a f
 
 Just like this season we will also have Claanpions to help you remember what is going on and keep on top of the challenges and activities. This season they might even have *special powers*...
 
-{{pageNumber 1}}
-{{footnote Brief | Claan ChAAos}}
-
-\page
-
-![image](https://eventyrgames.com/wp-content/uploads/2022/08/Mizzium-Apparatus-886x628.png){position:absolute,top:60px,right:50px,width:390px}
+![image](https://eventyrgames.com/wp-content/uploads/2022/08/Mizzium-Apparatus-886x628.png)
 
 
 ### Wild Magic
@@ -74,34 +64,26 @@ This effects can sometimes be positive or sometimes negative, but the higher the
 | 8 1- 85 | Data Harmony |  When scoring at the end of the fortnight add 5 to the roll of the Dice pool. |
 | 86 - 90 | Algorithmic Advantage | Gain an extra dice with a boosted probability distribution for your Claan Dice pool. |
 
-\column
-::::::::::::::::::::::::
 ### Dice as Currency?!
 To make Claan Dice even more valuable, they won't just be your primary mechanism for scoring points, they will also be exchangable for powerful claan items. Some of these items will have effects that last for the duration of the season, while others will be "consumable" and have effects that only grant a temporary effect.
 
 Below are two of the items that are on offer:
 
-{{descriptive
-##### Azure Aegis Shield
+
+#### Azure Aegis Shield
 **Cost: 6d20**
-
 For the rest of this season dice cannot be removed from your Claan Dice pool, even through the effects of wild magic.
-}}
-{{descriptive
-##### Schema Shifting Elixir
-**Cost: 3d8**
 
+#### Schema Shifting Elixir
+**Cost: 3d8**
 Merge your current dice pool with that of another Claan of your choice. Taking half the dice at random for each Claan.
-}}
+
 
 Some of the items will require dice which are a number of steps above the base, which means if you Claan decide they want to buy them then a team effort will be required to increase the steps of the dice enough to become useable currency for the item. Buying an item that costs d20s means 6 Claan members will need to contribute.
 
 ### The Tez and Si Effect
 This season Terry and Simon will be around to cause even more chaos during company events, they have the power to: grant Claan Dice, increase the dice step of a Claan, and even cause rolls on the Wild Magic table! 
-:
+
 Stay vigilant if they are around!
 
-![image](https://www.gmbinder.com/images/aohxS6U.png) {position:absolute,bottom:70px,left:25px,width:380px}
-
-{{pageNumber 2}}
-{{footnote Brief | Claan ChAAos}}
+![image](https://www.gmbinder.com/images/aohxS6U.png)
