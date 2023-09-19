@@ -29,28 +29,29 @@ def load_assets(url: str) -> dict:
         logging.info("Asset loaded successfully")
         return asset.json()
 
-# mongo_user = st.secrets["MONGO_USER"]
-# mongo_pass = st.secrets["MONGO_PASS"]
-# uri = f"mongodb+srv://{mongo_user}:{mongo_pass}@attendeedb.wbslhme.mongodb.net/?retryWrites=true&w=majority"
-# # Create a new client and connect to the server
-# client = MongoClient(uri, server_api=ServerApi('1'))
-# # Send a ping to confirm a successful connection
-# try:
-#     client.admin.command('ping')
-#     print("Pinged your deployment. You successfully connected to MongoDB!")
-# except Exception as e:
-#     print(e)
+mongo_user = st.secrets["MONGO_USER"]
+mongo_pass = st.secrets["MONGO_PASS"]
+uri = f"mongodb+srv://{mongo_user}:{mongo_pass}@claanapp.l2vlfwo.mongodb.net/?retryWrites=true&w=majority"
+# Create a new client and connect to the server
+client = MongoClient(uri, server_api=ServerApi('1'))
+# Send a ping to confirm a successful connection
+try:
+    client.admin.command('ping')
+    print("Pinged your deployment. You successfully connected to MongoDB!")
+except Exception as e:
+    print(e)
 
-# db = client[""]
-# col = db[""]
+db = client["Claan_app"]
+col = db["scores"]
 
-# Load assets
-lottie_fire = load_assets("https://assets8.lottiefiles.com/packages/lf20_uu7qI3.json")
-
+# Get relative path
 img_path = Path(__file__).parents[0]
+# Load images
 logo_img = Image.open(f"{img_path}/Images/Logo.png")
-claans_img = Image.open(f"{img_path}/Images/Combined_Hex.png")
-
+earth_img = Image.open(f"{img_path}/pages/Page_Images/Earth-striders-hex.png")
+fire_img = Image.open(f"{img_path}/pages/Page_Images/Flame-dancers-hex.png")
+thunder_img = Image.open(f"{img_path}/pages/Page_Images/Thunder-walkers-hex.png")
+wave_img = Image.open(f"{img_path}/pages/Page_Images/Wave-riders-hex.png")
 
 # Header section
 with st.container():
@@ -77,21 +78,48 @@ with st.container():
 with st.container():
     # Add title
     st.header("Scores")
-    # Add Claan Logo
-    st.image(claans_img)
+
+    # Load the scores for all claans
+    scores = [i for i in col.find()]
 
     # Create column for each claan
     col1, col2, col3, col4 = st.columns((1,1,1,1))
 
-    # Add metrics with the score for each claan
+    # Add content to first column
     with col1:
-        st.metric(label="Earth Striders", value=0, delta=0)
+        # Add the claan image
+        st.image(earth_img)
+        # Get scores for the claan
+        earth_scores = [i['Score'] for i in scores if (i['Claan']=="earth striders")]
+        # Add metric for claan score
+        st.metric(label="Earth Striders", value=sum(earth_scores), delta=earth_scores[-1])
+
+    # Add content to second column
     with col2:
-        st.metric(label="Fire Dancers", value=0, delta=0)
+        # Add the claan image
+        st.image(fire_img)
+        # Get scores for the claan
+        fire_scores = [i['Score'] for i in scores if (i['Claan']=="fire dancers")]
+        # Add metric for claan score
+        st.metric(label="Fire Dancers", value=sum(fire_scores), delta=fire_scores[-1])
+
+    # Add content to third column
     with col3:
-        st.metric(label="Thunder Walkers", value=0, delta=0)
+        # Add the claan image
+        st.image(thunder_img)
+        # Get scores for the claan
+        thunder_scores = [i['Score'] for i in scores if (i['Claan']=="thunder walkers")]
+        # Add metric for claan score
+        st.metric(label="Thunder Walkers", value=sum(thunder_scores), delta=thunder_scores[-1])
+
+    # Add content to last column
     with col4:
-        st.metric(label="Wave Riders", value=0, delta=0)
+        # Add the claan image
+        st.image(wave_img)
+        # Get scores for the claan
+        wave_scores = [i['Score'] for i in scores if (i['Claan']=="wave riders")]
+        # Add metric for claan score
+        st.metric(label="Wave Riders", value=sum(wave_scores), delta=wave_scores[-1])
 
     # Add spacer
     st.write("---")
