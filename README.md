@@ -1,6 +1,6 @@
 
 # Claan ChAAos
-Welcome to seasion 3 of Claans at Advancing Analytics. This time around things have been shaken up and injected with a healthy dose of D&D flair! This season should feel like a mixture of a roller coaster and an adventure. There are a whole host of changes, but fundamentally it is the same: bond with you Claan mates, score points, and fight for a seat in the legendary all-you-claan-eat feast!
+Welcome to season 3 of Claans at Advancing Analytics. This time around things have been shaken up and injected with a healthy dose of D&D flair! This season should feel like a mixture of a roller coaster and an adventure. There are a whole host of changes, but fundamentally it is the same: bond with you Claan mates, score points, and fight for a seat in the legendary all-you-claan-eat feast!
 
 ### Refreshed Claans
 A new season brings fresh Claans. Bid farewell to you current Claan mates and share you final goodbyes in preparation for the grand reshuffling. There will be a Gathering of epic proportions as all names are thrown to the cosmic winds to let the universe decide the members of each Claan. 
