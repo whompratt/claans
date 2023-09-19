@@ -11,24 +11,6 @@ from streamlit_lottie import st_lottie
 # Set the page title and icon and set layout to "wide" to minimise margains
 st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
-def load_assets(url: str) -> dict:
-    """Function load asset from a http get request
-
-    Args:
-        url (str): URL of the asset to load
-
-    Returns:
-        dict: Dictionary to be rendered into a lottie gif.
-    """
-    asset = requests.get(url)
-    if asset.status_code != 200:
-        logging.error("Failed to load asset")
-        return None
-
-    else:
-        logging.info("Asset loaded successfully")
-        return asset.json()
-
 mongo_user = st.secrets["MONGO_USER"]
 mongo_pass = st.secrets["MONGO_PASS"]
 uri = f"mongodb+srv://{mongo_user}:{mongo_pass}@claanapp.l2vlfwo.mongodb.net/?retryWrites=true&w=majority"
@@ -41,6 +23,7 @@ try:
 except Exception as e:
     print(e)
 
+# Set the database and collection
 db = client["Claan_app"]
 col = db["scores"]
 
@@ -68,6 +51,7 @@ with st.container():
         # Add logo
         st.image(logo_img)
 
+    # Add description
     st.write("Welcome to seasion 3 of Claans at Advancing Analytics. This time around things have been shaken up and injected with a healthy dose of D&D flair!")
     st.write("Using the Claan Portal you can see the scores as they stand, see this fortnights challenges and activities, and access the Claan area to see your upgrades and dice pool!")
 
@@ -89,7 +73,7 @@ with st.container():
     with col1:
         # Add the claan image
         st.image(earth_img)
-        # Get scores for the claan
+        # Get scores for the claan, using the sum of the scores, and the last entry as the delta
         earth_scores = [i['Score'] for i in scores if (i['Claan']=="earth striders")]
         # Add metric for claan score
         st.metric(label="Earth Striders", value=sum(earth_scores), delta=earth_scores[-1])
@@ -100,7 +84,7 @@ with st.container():
         st.image(fire_img)
         # Get scores for the claan
         fire_scores = [i['Score'] for i in scores if (i['Claan']=="fire dancers")]
-        # Add metric for claan score
+        # Add metric for claan score, using the sum of the scores, and the last entry as the delta
         st.metric(label="Fire Dancers", value=sum(fire_scores), delta=fire_scores[-1])
 
     # Add content to third column
@@ -109,7 +93,7 @@ with st.container():
         st.image(thunder_img)
         # Get scores for the claan
         thunder_scores = [i['Score'] for i in scores if (i['Claan']=="thunder walkers")]
-        # Add metric for claan score
+        # Add metric for claan score, using the sum of the scores, and the last entry as the delta
         st.metric(label="Thunder Walkers", value=sum(thunder_scores), delta=thunder_scores[-1])
 
     # Add content to last column
@@ -118,7 +102,7 @@ with st.container():
         st.image(wave_img)
         # Get scores for the claan
         wave_scores = [i['Score'] for i in scores if (i['Claan']=="wave riders")]
-        # Add metric for claan score
+        # Add metric for claan score, using the sum of the scores, and the last entry as the delta
         st.metric(label="Wave Riders", value=sum(wave_scores), delta=wave_scores[-1])
 
     # Add spacer
