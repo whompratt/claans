@@ -8,11 +8,11 @@ A new season brings fresh Claans. Bid farewell to you current Claan mates and sh
 You should also get ready to move and decorate! As you will be required to relocate your desk to the zone of your new Claan! This is a good opportunity for a spring clean and to rebrand yourself as the person with the coolest desk. Naturally there will be **Claan Dice** available for the best desk!
 
 ### A New Way of Scoring
-**Claan Dice**? What are these mystical and magical objects I hear you ask?! Rather than having fixed numbers of points attached to the Claan effort, completeing challenges and activites will earn you Claan dice. 
+**Claan Dice**? What are these mystical and magical objects I hear you ask?! Rather than having fixed numbers of points attached to the Claan effort, completeing quests will earn you Claan dice. 
 
-Every fortnight there will be a list of activites and challenges published to the Claan portal for all members of the Claan to complete. These will range from the standard step count challenges, to solving Wordles, to spending bonusly points. 
+Every fortnight there will be a list of quests published to the Claan portal for all members of the Claan to complete. These will range from the standard step count challenges, to solving Wordles, to spending bonusly points. 
 
-Each time you complete one of these challenges or activities you can log it in the portal and earn a dice for you Claan. At the end of the fortnight you will have accumulated a pool of dice equal to the number of activities and challenges completed by the Claan.
+Each time you complete one of these quests you can log it in the portal and earn a dice for you Claan. At the end of the fortnight you will have accumulated a pool of dice equal to the number of quests completed by the Claan.
 
 The Claan will then roll the accumulated dice and convert the results into points! Best prepare your shrine to lady luck and make an offering in Tymora's name.
 
@@ -21,19 +21,19 @@ The base Claan dice will be a D4, but for each different member of the Claan who
 
 D4 -> D6 -> D8 -> D10 -> D12 -> D20
 
-In order to maximise you score you will need 6 people in the Claan to complete at least one challenge or activity each week, so work as a team to make sure everyone is involved!
+In order to maximise you score you will need 6 people in the Claan to complete at least one quest each week, so work as a team to make sure everyone is involved!
 
 ![image](https://i.imgur.com/TUUgl7A.jpg)
 
 ### The Claan Portal
 To make it even easier to contribute to your Claan, track your dice pool, and see your Claan upgrades Claan Chaaos will come complete with a shiny new web portal! This can be found at [here](https://claan-chaaos.streamlit.app)! This means you can contribute to your claan from anywhere, any time, even from mobile!
 
-This app will have a home page with an overview of the total scores for each Claan, their members, and the current set of activities and challenges to be completed! Each Claan will then have their own page, locked behind a top secret password, where they can log their activities, see the number of dice in the current pool, and also track which step their Claan Dice are on. 
+This app will have a home page with an overview of the total scores for each Claan, their members, and the current set of quests to be completed! Each Claan will then have their own page, locked behind a top secret password, where they can log their quests, see the number of dice in the current pool, and also track which step their Claan Dice are on. 
 
 ### Time Marches On
-This season, time waits for no-one! Challenges and activities will be up for a fortnight then the window will close and entries for that period of time will no longer be valid. So make sure to keep on top of things and log your challenges and activities as you complete them!
+This season, time waits for no-one! Quests will be up for a fortnight then the window will close and entries for that period of time will no longer be valid. So make sure to keep on top of things and log your quests as you complete them!
 
-Just like this season we will also have Claanpions to help you remember what is going on and keep on top of the challenges and activities. This season they might even have *special powers*...
+Just like this season we will also have Claanpions to help you remember what is going on and keep on top of the quests. This season they might even have *special powers*...
 
 ![image](https://eventyrgames.com/wp-content/uploads/2022/08/Mizzium-Apparatus-886x628.png)
 

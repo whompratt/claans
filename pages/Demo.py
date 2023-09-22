@@ -49,7 +49,7 @@ with st.container():
         st.image(claan_img)
 
     # Add some desctipion and a spacer
-    st.write("Welcome to the Demo Claan area! Here you can find all of the dice you have accumulated for the current fortnight, your magic items, and submit any challenges or activities that you have been working on!")
+    st.write("Welcome to the Demo Claan area! Here you can find all of the dice you have accumulated for the current fortnight, your magic items, and submit any quests that you have been working on!")
     st.write("---")
 
 
@@ -120,7 +120,7 @@ with st.container():
 
 with st.container():
     # Add heading
-    st.header("Submit challenge or activity!")
+    st.header("Complete a quest")
 
     # Name
     name = st.text_input('Your name')
@@ -129,7 +129,7 @@ with st.container():
     date = st.date_input("When did you complete this?", datetime.date.today())
 
     # Acitivity/challenge
-    activity = st.selectbox('What activity or challenge did you complete?',
+    quest = st.selectbox('What quest did you complete?',
                             ('Tried Demo', 'Read changes'))
 
     # Add a button
@@ -141,7 +141,7 @@ with st.container():
         submission = {
             "Name": name,
             "Date": date.strftime("%d/%m/%Y"),
-            "Activity": activity,
+            "Activity": quest,
             "Dice step": dice_step
         }
         # Attempt to upload response to DB
