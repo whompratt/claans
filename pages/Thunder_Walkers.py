@@ -180,7 +180,7 @@ if check_password():
             # Create dictionary of responses
             submission = {
                 "Name": name,
-                "Date": datetime.date.today().strftime("%d/%m/%Y"),
+                "Date": datetime.datetime.now(),
                 "Quest": quest,
                 "Dice step": dice_step
             }
