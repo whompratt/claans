@@ -99,6 +99,7 @@ if check_password():
 
         # Get all submissions for current claan
         submissions = [i for i in col.find({"Date": {"$gte": datetime.datetime.strptime(settings['Fortnight Start Date'], ("%d/%m/%Y"))}}, { "_id": 0})]
+
         # Get unique members by using the set() operator on list of names
         contributors = list(set([i['Name'] for i in submissions])) 
         # Get dice step by getting the number of unique claan members who have submitted 
@@ -187,8 +188,11 @@ if check_password():
             }
             # Attempt to upload response to DB
             try:
-                col.insert_one(submission)
-                st.experimental_rerun()
+                if submissions[-1]['Date'] > datetime.datetime.now() + datetime.timedelta(seconds = -20):
+                    st.write("You have already made a submission in the last 20seconds!")
+                else:
+                    col.insert_one(submission)
+                    st.experimental_rerun()
             except Exception as e:
                 print(e)
                 st.write("Submission failed!")
