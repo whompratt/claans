@@ -3,10 +3,14 @@
     "Fire Dancers": ["Gavi", "Joanna", "Alex. M", "Connor", "Falek", "Johnny", "Jordan", "Anna", "Lucio"],
     "Thunder Walkers": ["Dylan", "Bethany", "Magda", "Tori", "Aaron", "Ust", "Raj", "Mikey", "Zoe", "Sam", "Luke"],
     "Wave Riders": ["Zach", "Dave", "Ayo", "Torr", "Iz", "Jamie", "Ben", "Grace", "Gareth", "Annabel", "Chris"],
-    "Quests": ["Claim a desk in your Claan Area in Gather",
-               "Decorate your gather desk with your Claan colours",
-               "Participate in a Claan meetup",
-               "React to Alex B's message in your Claan's teams chat"
+    "Quests": ["Attend the Company Standup in Gather",
+               "Make yourself lunch and eat it away from your desk",
+               "Walk 25,000 steps in one week",
+               "FIKA with a member of a DIFFERENT Claan",
+               "Send a joke to your Claan teams group chat (this best joke will recieve a bonus d20)",
+               "Play a game of Skribbl with at least 3 Claan members",
+               "Have a call at your desk in Gather, rather than on teams",
+               "Add something spooky to your desk in preparation for Halloween"
             ],
     "Fortnight Start Date": "15/10/2023"
 }
