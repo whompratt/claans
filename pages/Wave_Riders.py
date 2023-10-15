@@ -97,7 +97,7 @@ if check_password():
         st.write("Here you can keep track of all of the dice you team have earned this fortnight!")
 
         # Get all submissions for current claan
-        submissions = [i for i in col.find({}, { "_id": 0})]
+        submissions = [i for i in col.find({"Date": {"$gte": datetime.datetime.strptime(settings['Fortnight Start Date'], ("%d/%m/%Y"))}}, { "_id": 0})]
         # Get unique members by using the set() operator on list of names
         contributors = list(set([i['Name'] for i in submissions])) 
         # Get dice step by getting the number of unique claan members who have submitted 
