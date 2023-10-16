@@ -1,10 +1,12 @@
 import datetime
 import json
+import numpy as np
 import streamlit as st
 from pathlib import Path
 from PIL import Image
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
+
 
 def check_password():
     """Returns `True` if the user had the correct password."""
