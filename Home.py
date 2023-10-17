@@ -138,6 +138,7 @@ In order to maximise you score you will need 6 people in the Claan to complete a
 
 This app will have a home page with an overview of the total scores for each Claan, their members, and the current set of quests to be completed! Each Claan will then have their own page, locked behind a top secret password, where they can log their quests, see the number of dice in the current pool, and also track which step their Claan Dice are on. 
 
+
 ### Time Marches On
 This season, time waits for no-one! quests will be up for a fortnight then the window will close and entries for that period of time will no longer be valid. So make sure to keep on top of things and log your quests as you complete them!
 
@@ -151,41 +152,9 @@ At certain points throughout the season a roll on the wild magic table might be 
 
 This effects can sometimes be positive or sometimes negative, but the higher the dice roll, the better the effect will likely be!
 
-
-##### Sample Negative Effects
-| Roll | Name | Effect |
-|:---|:---:|:---:|
-| 11 - 15 | Distorted Distribution | When scoring at the end of the fortnight, subtract 5 from the roll of the Dice pool. |
-| 16 - 20 | Entropy Eclipse | Roll a d6 and subtract the result from your Claan score. |
-| 21 - 25 | Dropout Dilemma |  Lose d4 die from your Claan Dice pool. |
-| 26 - 30 | Model Misfit | Reduce the step of your Claan Dice pool by 1. |
-
-
-##### Sample Positive Effects
-| Roll | Name | Effect |
-|:---|:---:|:---:|
-| 66 - 70 | Precision Surge | Add a d20 to your Claan Dice pool. |
-| 71 - 75 | Regression Resurgence | Add d4 dice to your Claan pool. |
-| 76 - 80 | Insightful Overflow | Increase the step of your Claan DIce pool by 1. |
-| 8 1- 85 | Data Harmony |  When scoring at the end of the fortnight add 5 to the roll of the Dice pool. |
-| 86 - 90 | Algorithmic Advantage | Gain an extra dice with a boosted probability distribution for your Claan Dice pool. |
-
 ### Dice as Currency?!
-To make Claan Dice even more valuable, they won't just be your primary mechanism for scoring points, they will also be exchangable for powerful claan items. Some of these items will have effects that last for the duration of the season, while others will be "consumable" and have effects that only grant a temporary effect.
+To make Claan Dice even more valuable, they won't just be your primary mechanism for scoring points, they will also be exchangable for powerful claan items. Some of these items will have effects that last for the duration of the season, while others will be "consumable" and have effects that only grant a temporary effect. You can only purchase one magic item per fortnight, so chose wisely! It is also worth noting that you cannot carry dice over, so if you want something expensive, get working on those quests!
 
-Below are two of the items that are on offer:
-
-
-#### Azure Aegis Shield
-**Cost: 6d20**
-For the rest of this season dice cannot be removed from your Claan Dice pool, even through the effects of wild magic.
-
-#### Schema Shifting Elixir
-**Cost: 3d8**
-Merge your current dice pool with that of another Claan of your choice. Taking half the dice at random for each Claan.
-
-
-Some of the items will require dice which are a number of steps above the base, which means if you Claan decide they want to buy them then a team effort will be required to increase the steps of the dice enough to become useable currency for the item. Buying an item that costs d20s means 6 Claan members will need to contribute.
 
 ### The Tez and Si Effect
 This season Terry and Simon will be around to cause even more chaos during company events, they have the power to: grant Claan Dice, increase the dice step of a Claan, and even cause rolls on the Wild Magic table! 
