@@ -214,6 +214,8 @@ if check_password():
         if st.button('View'):
             st.table(submissions)
 
+        st.write("---")
+
     with st.container():
         # Add a title
         st.header("Claan Magic Items")

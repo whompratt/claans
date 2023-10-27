@@ -1,15 +1,15 @@
 # Magic Items
 
 <div class='descriptive'>
-#### Azure Aegis Shield
-**Cost: 8D20**
-Your claan dice cannot be copied or removed from your Claan Dice pool, even through the effects of wild magic.
+#### ~Azure Aegis Shield~
+~**Cost: 8D20**
+Your claan dice cannot be copied or removed from your Claan Dice pool, even through the effects of wild magic.~
 </div>
 
 <div class='descriptive'>
-#### Hadoop's Resonance Gem
-**Cost: 12D20**
-Any time wild magic affects your Claan, it affects all other Claans.
+#### ~~Hadoop's Resonance Gem~~
+~~**Cost: 12D20**
+Any time wild magic affects your Claan, it affects all other Claans.~~
 </div>
 
 <div class='descriptive'>
@@ -37,9 +37,9 @@ When rolling Claan dice at the end of the fortnight, you can reroll **all** dice
 </div>
 
 <div class='descriptive'>
-#### Big Data Gauntlet
-**Cost: 8D20**
-Permanently increase the base step of your dice from d4 to d6. 
+#### ~~Big Data Gauntlet~~
+~~**Cost: 8D20**
+Permanently increase the base step of your dice from d4 to d6.~~ 
 </div>
 
 <div class='descriptive'>
@@ -52,7 +52,7 @@ Each fortnight chose a quest, each member of your Claan can complete it twice.
 #### Azure Active Directory Amulet
 **Cost: 10D20** Add one to the result of the Claan dice for each team member that has completed a quest this fortnight. 
 </div>
-
+\column
 <div class='descriptive'>
 #### Coin of the Azure Cosmos
 **Cost: 12D20** Toss a coin before rolling Claan dice, if the result is heads double result before adding it to your Claan score. If the result is tails, halve result before adding it your Claan score.
