@@ -154,7 +154,7 @@ if check_password():
             st.metric(label="D12s", value=d12_count)
         with d20:
             # Get the number of dice for the current step
-            d20_count = len([i for i in submissions if (i['Dice step'] >= 6)])-8
+            d20_count = len([i for i in submissions if (i['Dice step'] >= 6)])
             st.metric(label="D20s", value=d20_count)
 
         # Add spacer

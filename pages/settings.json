@@ -3,14 +3,13 @@
     "Fire Dancers": ["Gavi", "Joanna", "Alex. M", "Connor", "Falek", "Johnny", "Jordan", "Anna", "Lucio"],
     "Thunder Walkers": ["Dylan", "Bethany", "Magda", "Tori", "Aaron", "Ust", "Raj", "Mikey", "Zoe", "Sam", "Luke"],
     "Wave Riders": ["Zach", "Dave", "Ayo", "Torr", "Iz", "Jamie", "Ben", "Grace", "Gareth", "Annabel", "Chris"],
-    "Quests": ["Attend the Company Standup in Gather",
-               "Make yourself lunch and eat it away from your desk",
-               "Walk 25,000 steps in one week",
-               "FIKA with a member of a DIFFERENT Claan",
-               "Send a joke to your Claan teams group chat (this best joke will recieve a bonus d20)",
-               "Play a game of Skribbl with at least 3 Claan members",
-               "Have a call at your desk in Gather, rather than on teams",
-               "Add something spooky to your desk in preparation for Halloween"
+    "Quests": ["Take a walk at lunch time",
+               "Attend Joanna's Stress awareness week L&L, or watch the recording.",
+               "Complete 1 card from the Mindfulness Deck.",
+               "Complete 3 cards from the Mindfulness Deck.",
+               "Complete 5 cards from the Mindfulness Deck.",
+               "Post a picture of your favourite Halloween decoration or costume in your Claan's team chat.",
+               "As a Claan solve the Claan ChAAos Halloween Scavenger hunt in Gather..."
             ],
-    "Fortnight Start Date": "15/10/2023"
+    "Fortnight Start Date": "29/10/2023"
 }

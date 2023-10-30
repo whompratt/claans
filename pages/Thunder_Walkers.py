@@ -105,7 +105,7 @@ if check_password():
         # Get unique members by using the set() operator on list of names
         contributors = list(set([i['Name'] for i in submissions])) 
         # Get dice step by getting the number of unique claan members who have submitted 
-        dice_step = len(contributors)
+        dice_step = len(contributors)+1
         if dice_step > 6:
             dice_step = 6
         # Create columns to display the current dice step
@@ -115,9 +115,7 @@ if check_password():
             st.subheader("You current dice step is:")
         with col_r:
             # Add the relevant dice image based on the dice step
-            if dice_step <= 1:
-                st.image(d4_img)
-            elif dice_step == 2:
+            if dice_step <= 2:
                 st.image(d6_img)
             elif dice_step == 3:
                 st.image(d8_img)
@@ -155,7 +153,7 @@ if check_password():
             st.metric(label="D12s", value=d12_count)
         with d20:
             # Get the number of dice for the current step
-            d20_count = len([i for i in submissions if (i['Dice step'] >= 6)])-8-12
+            d20_count = len([i for i in submissions if (i['Dice step'] >= 6)])
             st.metric(label="D20s", value=d20_count)
 
         # Add spacer
