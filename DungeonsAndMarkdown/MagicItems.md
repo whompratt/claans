@@ -43,9 +43,9 @@ Permanently increase the base step of your dice from d4 to d6.~~
 </div>
 
 <div class='descriptive'>
-#### Spark's Arcane Hourglass
-**Cost: 16D20**
-Each fortnight chose a quest, each member of your Claan can complete it twice.
+#### ~~Spark's Arcane Hourglass~~
+~~**Cost: 16D20**
+Each fortnight chose a quest, each member of your Claan can complete it twice.~~
 </div>
 
 <div class='descriptive'>

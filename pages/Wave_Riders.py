@@ -63,6 +63,7 @@ d10_img = Image.open(f"{img_path}/Page_Images/d10.png")
 d12_img = Image.open(f"{img_path}/Page_Images/d12.png")
 d20_img = Image.open(f"{img_path}/Page_Images/d20.png")
 claan_img = Image.open(f"{img_path}/Page_Images/Wave-riders-hex.png")
+sah = Image.open(f"{img_path}/Page_Images/Sparks_Arcane_Hourglass.png")
 
 with open(f"{img_path}/settings.json") as fp:
     # Load the .json file of settings
@@ -152,7 +153,7 @@ if check_password():
             st.metric(label="D12s", value=d12_count)
         with d20:
             # Get the number of dice for the current step
-            d20_count = len([i for i in submissions if (i['Dice step'] >= 6)])
+            d20_count = len([i for i in submissions if (i['Dice step'] >= 6)])-16
             st.metric(label="D20s", value=d20_count)
 
         # Add spacer
@@ -211,3 +212,15 @@ if check_password():
         # Add button to display claan activity when pressed
         if st.button('View'):
             st.table(submissions)
+
+    with st.container():
+        # Add a title
+        st.header("Claan Magic Items")
+
+        # Add columns for magic item title, text and image
+        item1_l, item1_r = st.columns((2,1))
+        with item1_l:
+            st.subheader("Spark's Arcane Hourglass")
+            st.write("Each fortnight chose a quest, each member of your Claan can complete it twice.")
+        with item1_r:
+            st.image(sah)
