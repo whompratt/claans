@@ -64,6 +64,7 @@ d12_img = Image.open(f"{img_path}/Page_Images/d12.png")
 d20_img = Image.open(f"{img_path}/Page_Images/d20.png")
 claan_img = Image.open(f"{img_path}/Page_Images/Wave-riders-hex.png")
 sah = Image.open(f"{img_path}/Page_Images/Sparks_Arcane_Hourglass.png")
+aso = Image.open(f"{img_path}/Page_Images/Azure_Sentinel_Ointment.png")
 
 with open(f"{img_path}/settings.json") as fp:
     # Load the .json file of settings
@@ -153,7 +154,7 @@ if check_password():
             st.metric(label="D12s", value=d12_count)
         with d20:
             # Get the number of dice for the current step
-            d20_count = len([i for i in submissions if (i['Dice step'] >= 6)])-16
+            d20_count = len([i for i in submissions if (i['Dice step'] >= 6)])-16-3
             st.metric(label="D20s", value=d20_count)
 
         # Add spacer
@@ -224,3 +225,11 @@ if check_password():
             st.write("Each fortnight chose a quest, each member of your Claan can complete it twice.")
         with item1_r:
             st.image(sah)
+
+        # Add columns for magic item title, text and image
+        item2_l, item2_r = st.columns((2,1))
+        with item2_l:
+            st.subheader("Azure Sentinel Ointment")
+            st.write("One use only. Negate the effects of one effect suffered due to wild magic.")
+        with item2_r:
+            st.image(aso)
