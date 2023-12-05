@@ -192,7 +192,7 @@ if check_password():
             try:
                 if name == "Please select your name":
                     st.write("Please tell me who you are!")
-                elif len(temp_lookup) >= 1: 
+                elif len(temp_lookup) >= 2: 
                     st.write("You have already completed that quest!")
                 elif submissions != [] and submissions[-1]['Date'] > datetime.datetime.now() + datetime.timedelta(seconds = -20):
                     st.write("You have already made a submission in the last 20seconds!")
