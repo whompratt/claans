@@ -174,6 +174,12 @@ if check_password():
                         settings["Quests"]
                     )
 
+        if quest == "Access your Claan's secret phrase using NordLayer":
+            answer = st.text_input("Please enter the Secret Phrase")
+
+        if quest == "Complete the winter scavenger hunt":
+            answer = st.text_input("Please enter the solution to the winter scavenger hunt")
+
         # Add a button
         if st.button('Submit'):
             # Check if new contributor to increment dice step
@@ -195,6 +201,10 @@ if check_password():
                     st.write("You have already completed that quest!")
                 elif submissions != [] and submissions[-1]['Date'] > datetime.datetime.now() + datetime.timedelta(seconds = -20):
                     st.write("You have already made a submission in the last 20seconds!")
+                elif quest == "Access your Claan's secret phrase using NordLayer" and answer != st.secrets["thunder_phrase"]:
+                    st.write("Secret phrase is either missing, or incorrect!")
+                elif quest == "Complete the winter scavenger hunt" and answer != st.secrets["winter_scav"]:
+                    st.write("Solution is either missing, or incorrect!")
                 else:
                     col.insert_one(submission)
                     st.experimental_rerun()
