@@ -198,6 +198,8 @@ if check_password():
             try:
                 if name == "Please select your name":
                     st.write("Please tell me who you are!")
+                elif quest == "Block out at least 30 minutes per day to have lunch away from your desk" and len(temp_lookup) >= 2:
+                    st.write("You have already completed that quest twice!")
                 elif len(temp_lookup) >= 1:
                     st.write("You have already completed that quest!")
                 elif submissions != [] and submissions[-1]['Date'] > datetime.datetime.now() + datetime.timedelta(seconds = -20):
