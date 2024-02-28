@@ -198,9 +198,9 @@ if check_password():
             try:
                 if name == "Please select your name":
                     st.write("Please tell me who you are!")
-                elif len(temp_lookup) >= 1 and quest != "Take a short walk before work, or during lunch and share a photo of something cool that you see with your Claan":
+                elif len(temp_lookup) >= 1 and quest != "Acknowledge a colleague on Bonusly for #ZeroBurnout":
                     st.write("You have already completed that quest!")
-                elif quest == "Take a short walk before work, or during lunch and share a photo of something cool that you see with your Claan" and len(temp_lookup) >= 2:
+                elif quest == "Acknowledge a colleague on Bonusly for #ZeroBurnout" and len(temp_lookup) >= 2:
                     st.write("You have already completed that quest twice!")
                 elif submissions != [] and submissions[-1]['Date'] > datetime.datetime.now() + datetime.timedelta(seconds = -20):
                     st.write("You have already made a submission in the last 20seconds!")
