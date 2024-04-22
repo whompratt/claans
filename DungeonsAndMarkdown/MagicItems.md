@@ -64,9 +64,9 @@ Each fortnight chose a quest, each member of your Claan can complete it twice.~~
 </div>
 
 <div class='descriptive'>
-#### Schema Shifting Elixir
-**Cost: 8D20**
-One use only. Merge your current dice pool with that of another Claan of your choice. Taking half the dice at random for each Claan.
+#### ~~Schema Shifting Elixir~~
+~~**Cost: 8D20**
+One use only. Merge your current dice pool with that of another Claan of your choice. Taking half the dice at random for each Claan.~~
 </div>
 
 <div class='descriptive'>
@@ -99,7 +99,7 @@ One use only. Copy all dice from another Claans pool of Claan dice.
 </div>
 
 <div class='descriptive'>
-#### Azure Sentinel Ointment
-**Cost: 3D20**
-One use only. Negate the effects on one effect suffered due to wild magic. 
+#### ~~Azure Sentinel Ointment~~
+~~**Cost: 3D20**
+One use only. Negate the effects on one effect suffered due to wild magic.~~
 </div>
