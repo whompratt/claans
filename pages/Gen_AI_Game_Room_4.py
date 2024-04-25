@@ -144,7 +144,7 @@ def submit_prompt():
         json_response = json.loads(result.model_dump_json())
 
         # Set the directory for the stored image
-        image_dir = os.path.join(img_path, '/AI_Images')
+        image_dir = os.path.join(img_path, '/Page_Images')
 
         # If the directory doesn't exist, create it
         if not os.path.isdir(image_dir):
