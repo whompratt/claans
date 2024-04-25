@@ -143,12 +143,12 @@ def submit_prompt():
 
         json_response = json.loads(result.model_dump_json())
 
-        # Set the directory for the stored image
-        image_dir = os.path.join(img_path, '/Page_Images')
+        # # Set the directory for the stored image
+        # image_dir = f"{img_path}/Page_Images/"
 
-        # If the directory doesn't exist, create it
-        if not os.path.isdir(image_dir):
-            os.mkdir(image_dir)
+        # # If the directory doesn't exist, create it
+        # if not os.path.exists(image_dir):
+        #     os.mkdir(image_dir)
 
         # Initialize the image path (note the filetype should be png)
         image_path = f'{img_path}/Page_Images/{ROOM}_Round_{st.session_state.round}.png'
