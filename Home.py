@@ -11,21 +11,23 @@ from streamlit_lottie import st_lottie
 # Set the page title and icon and set layout to "wide" to minimise margains
 st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
-mongo_user = st.secrets["MONGO_USER"]
-mongo_pass = st.secrets["MONGO_PASS"]
-uri = f"mongodb+srv://{mongo_user}:{mongo_pass}@claanapp.l2vlfwo.mongodb.net/?retryWrites=true&w=majority"
-# Create a new client and connect to the server
-client = MongoClient(uri, server_api=ServerApi('1'))
-# Send a ping to confirm a successful connection
-try:
-    client.admin.command('ping')
-    print("Pinged your deployment. You successfully connected to MongoDB!")
-except Exception as e:
-    print(e)
 
-# Set the database and collection
-db = client["Claan_app"]
-col = db["scores2"]
+if "db" not in st.session_state:
+    mongo_user = st.secrets["MONGO_USER"]
+    mongo_pass = st.secrets["MONGO_PASS"]
+    uri = f"mongodb+srv://{mongo_user}:{mongo_pass}@claanapp.l2vlfwo.mongodb.net/?retryWrites=true&w=majority"
+    # Create a new client and connect to the server
+    client = MongoClient(uri, server_api=ServerApi('1'))
+    # Send a ping to confirm a successful connection
+    try:
+        client.admin.command('ping')
+        print("Pinged your deployment. You successfully connected to MongoDB!")
+    except Exception as e:
+        print(e)
+
+    # Set the database and collection
+    st.session_state.db = client["Claan_app"]
+    st.session_state.col = st.session_state.db["scores2"]
 
 # Get relative path
 img_path = Path(__file__).parents[0]
@@ -36,88 +38,95 @@ fire_img = Image.open(f"{img_path}/pages/Page_Images/Flame-dancers-hex.png")
 thunder_img = Image.open(f"{img_path}/pages/Page_Images/Thunder-walkers-hex.png")
 wave_img = Image.open(f"{img_path}/pages/Page_Images/Wave-riders-hex.png")
 
-# Header section
-with st.container():
-    # Create columns
-    head_l, head_r = st.columns((2.5,1))
 
-    with head_l:
-        # Add a subheader
-        st.subheader("Advancing Analytics")
-        # Add a title
-        st.title("Season 3 - Claan Caalm")
+def main():
+    # Header section
+    with st.container():
+        # Create columns
+        head_l, head_r = st.columns((2.5,1))
 
-    with head_r:
-        # Add logo
-        st.image(logo_img)
+        with head_l:
+            # Add a subheader
+            st.subheader("Advancing Analytics")
+            # Add a title
+            st.title("Season 3 - Claan Caalm")
 
-    # Add description
-    st.write("Welcome to seasion 4 of Claans at Advancing Analytics. This time around things are taking a more relaxed turn but retaining a healthy dose of that Claans flair!")
-    st.write("Using the Claan Portal you can see the scores as they stand, see this fortnights quests, and access the Claan area log quests, steps and activities!")
+        with head_r:
+            # Add logo
+            st.image(logo_img)
 
-    # Add spacer
-    st.write("---")
+        # Add description
+        st.write("Welcome to seasion 4 of Claans at Advancing Analytics. This time around things are taking a more relaxed turn but retaining a healthy dose of that Claans flair!")
+        st.write("Using the Claan Portal you can see the scores as they stand, see this fortnights quests, and access the Claan area log quests, steps and activities!")
 
-# Add section for Claan scores
-with st.container():
-    # Add title
-    st.header("Scores")
+        # Add spacer
+        st.write("---")
 
-    # Load the scores for all claans
-    scores = [i for i in col.find()]
+    # Add section for Claan scores
+    with st.container():
+        # Add title
+        st.header("Scores")
 
-    # Create column for each claan
-    col1, col2, col3, col4 = st.columns((1,1,1,1))
+        # Load the scores for all claans
+        scores = [i for i in st.session_state.col.find()]
 
-    # Add content to first column
-    with col1:
-        # Add the claan image
-        st.image(earth_img)
-        # Get scores for the claan, using the sum of the scores, and the last entry as the delta
-        earth_scores = [i['Score'] for i in scores if (i['Claan']=="Earth Striders")]
-        print(earth_scores)
-        # Add metric for claan score
-        st.metric(label="Earth Striders", value=sum(earth_scores), delta=earth_scores[-1])
+        # Create column for each claan
+        col1, col2, col3, col4 = st.columns((1,1,1,1))
 
-    # Add content to second column
-    with col2:
-        # Add the claan image
-        st.image(fire_img)
-        # Get scores for the claan
-        fire_scores = [i['Score'] for i in scores if (i['Claan']=="Fire Dancers")]
-        # Add metric for claan score, using the sum of the scores, and the last entry as the delta
-        st.metric(label="Fire Dancers", value=sum(fire_scores), delta=fire_scores[-1])
+        # Add content to first column
+        with col1:
+            # Add the claan image
+            st.image(earth_img)
+            # Get scores for the claan, using the sum of the scores, and the last entry as the delta
+            earth_scores = [i['Score'] for i in scores if (i['Claan']=="Earth Striders")]
+            print(earth_scores)
+            # Add metric for claan score
+            st.metric(label="Earth Striders", value=sum(earth_scores), delta=earth_scores[-1])
 
-    # Add content to third column
-    with col3:
-        # Add the claan image
-        st.image(thunder_img)
-        # Get scores for the claan
-        thunder_scores = [i['Score'] for i in scores if (i['Claan']=="Thunder Walkers")]
-        # Add metric for claan score, using the sum of the scores, and the last entry as the delta
-        st.metric(label="Thunder Walkers", value=sum(thunder_scores), delta=thunder_scores[-1])
+        # Add content to second column
+        with col2:
+            # Add the claan image
+            st.image(fire_img)
+            # Get scores for the claan
+            fire_scores = [i['Score'] for i in scores if (i['Claan']=="Fire Dancers")]
+            # Add metric for claan score, using the sum of the scores, and the last entry as the delta
+            st.metric(label="Fire Dancers", value=sum(fire_scores), delta=fire_scores[-1])
 
-    # Add content to last column
-    with col4:
-        # Add the claan image
-        st.image(wave_img)
-        # Get scores for the claan
-        wave_scores = [i['Score'] for i in scores if (i['Claan']=="Wave Riders")]
-        # Add metric for claan score, using the sum of the scores, and the last entry as the delta
-        st.metric(label="Wave Riders", value=sum(wave_scores), delta=wave_scores[-1])
+        # Add content to third column
+        with col3:
+            # Add the claan image
+            st.image(thunder_img)
+            # Get scores for the claan
+            thunder_scores = [i['Score'] for i in scores if (i['Claan']=="Thunder Walkers")]
+            # Add metric for claan score, using the sum of the scores, and the last entry as the delta
+            st.metric(label="Thunder Walkers", value=sum(thunder_scores), delta=thunder_scores[-1])
 
-    # Add spacer
-    st.write("---")
+        # Add content to last column
+        with col4:
+            # Add the claan image
+            st.image(wave_img)
+            # Get scores for the claan
+            wave_scores = [i['Score'] for i in scores if (i['Claan']=="Wave Riders")]
+            # Add metric for claan score, using the sum of the scores, and the last entry as the delta
+            st.metric(label="Wave Riders", value=sum(wave_scores), delta=wave_scores[-1])
 
-# Add section for changes
-with st.container():
-    st.title("How it works!")
-    st.write("Claans and the Claan competition are here as a tool to encourage a healthy work life balance, and to promote practicing self care! Plus it is a great opportunity to socialise and cooperate with others in the company who aren't in your department and project teams!")
-    st.subheader("Quests")
-    st.write("Each fortnight there will be 5 quests for each member member of the Claan to complete. The reward for each quest will be a dice, which will be automatically rolled and the result added to your Claans score.")
-    st.write("Each member of the Claan will need to 'unlock' the quests with higher rewards simply by completing the quests before it. Completeing the D4 quest will unlock the D6 quest, the D6 quest will unlock the D8 quest, etc etc...")
-    st.info("Quests can now be completed daily! (But only need to be completed once to unlock the next quest)")
-    st.subheader("Steps")
-    st.write("Step counting is back, and this time it is simple! If you complete 10,000 steps or more in a day, you can log it in the portal and claim yourself D4 points!")
-    st.subheader("Activities")
-    st.write("Activities are also back! Each week different activities will be incentivised but by default 45 minutes of indoor exercise will net you D6 points, 45 minutes of outdoor exercise will net you D8 points, and participating in a team sport will net you D10 points!")
+        # Add spacer
+        st.write("---")
+
+    # Add section for changes
+    with st.container():
+        st.title("How it works!")
+        st.write("Claans and the Claan competition are here as a tool to encourage a healthy work life balance, and to promote practicing self care! Plus it is a great opportunity to socialise and cooperate with others in the company who aren't in your department and project teams!")
+        st.subheader("Quests")
+        st.write("Each fortnight there will be 5 quests for each member member of the Claan to complete. The reward for each quest will be a dice, which will be automatically rolled and the result added to your Claans score.")
+        st.write("Each member of the Claan will need to 'unlock' the quests with higher rewards simply by completing the quests before it. Completeing the D4 quest will unlock the D6 quest, the D6 quest will unlock the D8 quest, etc etc...")
+        st.info("D4 - D10 Quests can now be completed daily! (But only need to be completed once to unlock the next quest)")
+        st.info("The D12 quest will always be a Claan Challenge, it is generally completed as a team and can only completed once per person")
+        st.subheader("Steps")
+        st.write("Step counting is back, and this time it is simple! If you complete 10,000 steps or more in a day, you can log it in the portal and claim yourself D4 points!")
+        st.subheader("Activities")
+        st.write("Activities are also back! Each week different activities will be incentivised but by default 45 minutes of indoor exercise will net you D6 points, 45 minutes of outdoor exercise will net you D8 points, and participating in a team sport will net you D10 points!")
+
+
+if __name__ == "__main__":
+    main()
