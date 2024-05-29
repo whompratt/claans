@@ -65,7 +65,7 @@ if "db" not in st.session_state:
 
     # Set database and collection
     st.session_state.db = client["Claan_app"]
-    st.session_state.col = st.session_state.db["earth_striders"]
+    st.session_state.col = st.session_state.db["thunder_walkers"]
     st.session_state.score_col = st.session_state.db["scores2"]
 
 if "settings" not in st.session_state:
