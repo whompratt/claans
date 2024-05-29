@@ -12,7 +12,7 @@ from streamlit_lottie import st_lottie
 st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
 
-if "db" not in st.session_state:
+if "home_db" not in st.session_state:
     mongo_user = st.secrets["MONGO_USER"]
     mongo_pass = st.secrets["MONGO_PASS"]
     uri = f"mongodb+srv://{mongo_user}:{mongo_pass}@claanapp.l2vlfwo.mongodb.net/?retryWrites=true&w=majority"
@@ -26,8 +26,8 @@ if "db" not in st.session_state:
         print(e)
 
     # Set the database and collection
-    st.session_state.db = client["Claan_app"]
-    st.session_state.col = st.session_state.db["scores2"]
+    st.session_state.home_db = client["Claan_app"]
+    st.session_state.home_col = st.session_state.home_db["scores2"]
 
 # Get relative path
 img_path = Path(__file__).parents[0]
@@ -68,7 +68,7 @@ def main():
         st.header("Scores")
 
         # Load the scores for all claans
-        scores = [i for i in st.session_state.col.find()]
+        scores = [i for i in st.session_state.home_col.find()]
 
         # Create column for each claan
         col1, col2, col3, col4 = st.columns((1,1,1,1))
@@ -118,14 +118,14 @@ def main():
         st.title("How it works!")
         st.write("Claans and the Claan competition are here as a tool to encourage a healthy work life balance, and to promote practicing self care! Plus it is a great opportunity to socialise and cooperate with others in the company who aren't in your department and project teams!")
         st.subheader("Quests")
-        st.write("Each fortnight there will be 5 quests for each member member of the Claan to complete. The reward for each quest will be a dice, which will be automatically rolled and the result added to your Claans score.")
-        st.write("Each member of the Claan will need to 'unlock' the quests with higher rewards simply by completing the quests before it. Completeing the D4 quest will unlock the D6 quest, the D6 quest will unlock the D8 quest, etc etc...")
-        st.info("D4 - D10 Quests can now be completed daily! (But only need to be completed once to unlock the next quest)")
+        st.write("Each fortnight there will be 5 quests for each member member of the Claan to complete. The reward for each quest will be a dice, ranging from D4 to D10 points. It will be automatically rolled and the result added to your Claan's score.")
+        st.info("D4 - D10 Quests can now be completed daily!")
         st.info("The D12 quest will always be a Claan Challenge, it is generally completed as a team and can only completed once per person")
         st.subheader("Steps")
         st.write("Step counting is back, and this time it is simple! If you complete 10,000 steps or more in a day, you can log it in the portal and claim yourself D4 points!")
         st.subheader("Activities")
         st.write("Activities are also back! Each week different activities will be incentivised but by default 45 minutes of indoor exercise will net you D6 points, 45 minutes of outdoor exercise will net you D8 points, and participating in a team sport will net you D10 points!")
+        st.info("All activities can be logged daily too!")
 
 
 if __name__ == "__main__":
