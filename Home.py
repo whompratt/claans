@@ -49,7 +49,7 @@ def main():
             # Add a subheader
             st.subheader("Advancing Analytics")
             # Add a title
-            st.title("Season 3 - Claan Caalm")
+            st.title("Season 4 - Claan Caalm")
 
         with head_r:
             # Add logo
