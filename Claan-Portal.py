@@ -2,16 +2,16 @@ import pathlib
 
 import streamlit as st
 
-from claans import Claans
-from database import Database
-from debug import Debug
+from lib.claans import Claans
+from lib.debug import Debug
+from lib.scores import Scores
 
 # Set the page title and icon and set layout to "wide" to minimise margains
 st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
 
-def init_page():
-    scores = Database.get_scores()
+def init_page() -> None:
+    scores = Scores.get_scores()
 
     # --- HEADER --- #
     with st.container():
@@ -94,7 +94,7 @@ def init_page():
     # --- INFO --- #
 
 
-def main():
+def main() -> None:
     if st.secrets.env.get("debug"):
         Debug()
 

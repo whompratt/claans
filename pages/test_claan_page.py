@@ -1,7 +1,8 @@
-from claans import ClaanPage, Claans
+from lib.claan_page import ClaanPage
+from lib.claans import Claans
 
 
-def main():
+def main() -> None:
     page = ClaanPage(Claans.EARTH_STRIDERS)
 
 
