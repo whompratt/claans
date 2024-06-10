@@ -2,16 +2,19 @@ import pathlib
 
 import streamlit as st
 
-from lib.claans import Claans
-from lib.debug import Debug
-from lib.scores import Scores
+from utils.claans import Claans
+from utils.database import Database
+from utils.debug import Debug
 
 # Set the page title and icon and set layout to "wide" to minimise margains
 st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
 
 def init_page() -> None:
-    scores = Scores.get_scores()
+    if "scores" not in st.session_state:
+        st.session_state["scores"] = Database.get_scores()
+    if "quest_log" not in st.session_state:
+        st.session_state["quest_log"] = Database.get_quest_log
 
     # --- HEADER --- #
     with st.container():
@@ -40,14 +43,20 @@ def init_page() -> None:
     with st.container():
         st.header("Scores")
 
-        # !!! ---- NEW --- !!! #
         cols = zip(Claans, st.columns(len(Claans)))
         for claan, col in cols:
             with col:
                 st.image(
                     str(pathlib.Path(f"./assets/images/{claan.name.lower()}_hex.png"))
                 )
-                st.metric(label=claan.value, value=scores.get(claan.name))
+                st.metric(
+                    label=claan.value,
+                    value=next(
+                        document["score"]
+                        for document in st.session_state["scores"]
+                        if document["claan"] == claan.name
+                    ),
+                )
     # --- SCORES --- #
 
     st.divider()
