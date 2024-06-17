@@ -12,9 +12,9 @@ st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
 def init_page() -> None:
     if "scores" not in st.session_state:
-        st.session_state["scores"] = Database.get_scores()
+        st.session_state["scores"] = Database.get_collection(collection="scores")
     if "quest_log" not in st.session_state:
-        st.session_state["quest_log"] = Database.get_quest_log
+        st.session_state["quest_log"] = Database.get_collection(collection="quest_log")
 
     # --- HEADER --- #
     with st.container():

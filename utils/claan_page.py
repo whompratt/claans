@@ -21,11 +21,17 @@ class ClaanPage:
         )
 
         if "scores" not in st.session_state:
-            st.session_state["scores"] = Database.get_scores()
+            st.session_state["scores"] = Database.get_documents(collection="scores")
         if "quest_log" not in st.session_state:
-            st.session_state["quest_log"] = Database.get_quest_log()
+            st.session_state["quest_log"] = Database.get_documents(
+                collection="quest_log"
+            )
         if "users" not in st.session_state:
-            st.session_state["users"] = Database.get_users(self.claan)
+            st.session_state["users"] = Database.get_documents(collection="users")
+        if f"users_{self.claan.name}" not in st.session_state:
+            st.session_state[f"users_{self.claan.name}"] = Database.get_documents(
+                collection="users", filter={"user_claan": self.claan.name}
+            )
 
         self.build_claan_page()
 
@@ -106,7 +112,7 @@ class ClaanPage:
                 st.selectbox(
                     label="Your name",
                     key="user_name",
-                    options=st.session_state["users"],
+                    options=st.session_state[f"users_{self.claan.name}"],
                     format_func=lambda user: user.get("user_name"),
                 )
 
