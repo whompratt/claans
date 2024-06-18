@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from enum import Enum, IntEnum
 
-from .claans import Claans
+from utils.claans import Claans
 
 
 class RecordType(IntEnum):
@@ -53,7 +53,7 @@ class Record:
         self.score = self.dice.roll()
         self.timestamp = datetime.now(tz=timezone.utc)
 
-    def as_dict(self):
+    def to_dict(self):
         """Returns this record as a formatted dict."""
         return {
             "user": self.user,

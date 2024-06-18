@@ -1,7 +1,7 @@
 import pandas as pd
 import streamlit as st
 
-from .database import Database
+from utils.database import Database
 
 
 class Debug:
@@ -14,6 +14,7 @@ class Debug:
             )
         if "users" not in st.session_state:
             st.session_state["users"] = Database.get_documents(collection="users")
+
         self.build_debug_interface()
 
     def build_debug_interface(self):

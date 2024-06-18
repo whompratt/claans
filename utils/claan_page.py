@@ -3,8 +3,8 @@ import pathlib
 
 import streamlit as st
 
-from .claans import Claans
-from .database import Database
+from utils.claans import Claans
+from utils.database import Database
 
 
 class ClaanPage:

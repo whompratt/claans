@@ -5,11 +5,11 @@ import pymongo.collection
 import pymongo.database
 import streamlit as st
 
-from .record import Record
+from utils.record import Record
 
 
 class Database:
-    """Handles direct interactions with the mongo database"""
+    """Handles direct interactions with the mongo database."""
 
     @classmethod
     @st.cache_resource
@@ -109,35 +109,6 @@ class Database:
         return list(collection.find(filter))
 
     @classmethod
-    def submit_quest(cls, record: Record) -> bool:
-        """
-        Submits a new document to the `quest_log` collection recording the completion of a quest or activity.
-
-        This function _inserts_ a new document, so no filter is performed against the collection in order to keep this class as streamlined as possible.
-        As such, validation of whether a user should be able to submit this quest or activity should be performed before calling this function.
-
-        Args:
-            record: instance of class `Record` defining the data to submit.
-
-        Returns:
-            bool: True on successful submission.
-        """
-        quest_log = cls.get_collection("quest_log")
-        _ = cls.get_documents(collection="quest_log")  # Prevents reloads
-
-        result = quest_log.insert_one(record.as_dict())
-
-        # TODO: Should this be an exception? Once we're in this state we're fucked.
-        if result.acknowledged:
-            if not cls.update_score(record):
-                st.warning("Quest or activity submitted, but failed to update scores.")
-
-        cls.get_documents.clear(collection="quest_log")
-        st.session_state["quest_log"] = cls.get_documents(collection="quest_log")
-
-        return result.acknowledged
-
-    @classmethod
     def update_score(cls, record: Record) -> bool:
         """
         Updates an existing document in the `scores` collection, incrementing is value by some amount.
@@ -211,7 +182,7 @@ class Database:
 #     quest_log = cls.get_collection("quest_log")
 #     _ = cls.get_quest_log()
 
-#     quest_log.insert_one(record.as_dict())
+#     quest_log.insert_one(record.to_dict())
 #     cls.update_scores(record)
 
 #     cls.get_quest_log.clear()
