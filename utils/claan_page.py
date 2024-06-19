@@ -5,6 +5,8 @@ import streamlit as st
 
 from utils.claans import Claans
 from utils.database import Database
+from utils.record import RecordSchema
+from utils.user import UserSchema
 
 
 class ClaanPage:
@@ -21,16 +23,20 @@ class ClaanPage:
         )
 
         if "scores" not in st.session_state:
-            st.session_state["scores"] = Database.get_documents(collection="scores")
+            scores = Database.get_documents(collection="scores")
+            st.session_state["scores"] = scores
         if "quest_log" not in st.session_state:
-            st.session_state["quest_log"] = Database.get_documents(
-                collection="quest_log"
-            )
+            quest_log = Database.get_documents(collection="quest_log")
+            st.session_state["quest_log"] = RecordSchema().load(quest_log, many=True)
         if "users" not in st.session_state:
-            st.session_state["users"] = Database.get_documents(collection="users")
+            users = Database.get_documents(collection="users")
+            st.session_state["users"] = UserSchema().load(users, many=True)
         if f"users_{self.claan.name}" not in st.session_state:
-            st.session_state[f"users_{self.claan.name}"] = Database.get_documents(
+            this_claan_users = Database.get_documents(
                 collection="users", filter={"user_claan": self.claan.name}
+            )
+            st.session_state[f"users_{self.claan.name}"] = UserSchema().load(
+                this_claan_users, many=True
             )
 
         self.build_claan_page()

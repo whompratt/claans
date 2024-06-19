@@ -1,12 +1,47 @@
 import streamlit as st
 
 from utils.database import Database
-from utils.quests import Quest
-from utils.record import Record
+from utils.quest import Quest
+from utils.record import Record, RecordSchema
+from utils.user import UserSchema
 
 
 class Data:
     """Handles communication between Database and Streamlit pages."""
+
+    @classmethod
+    def refresh_data(cls) -> None:
+        """Clears existing cache for Database.get_documents() and reloads documents into st.session_date."""
+        Database.get_documents.clear()
+        scores = Database.get_documents(collection="scores")
+        quest_log = Database.get_documents(collection="quest_log")
+        users = Database.get_documents(collection="users")
+
+        # for log in quest_log:
+        #     st.write(log)
+
+        # test_records = [
+        #     Record("User Name", Claans.EARTH_STRIDERS, RecordType.ACTIVITY, Dice.D10),
+        #     Record("Another User", Claans.FIRE_DANCERS, RecordType.QUEST, Dice.D12),
+        # ]
+
+        # test_dump = RecordSchema().dump(test_records, many=True)
+        # test_load = RecordSchema().load(test_dump, many=True)
+        # for loaded in test_load:
+        #     st.write(loaded)
+
+        st.session_state["scores"] = scores
+        st.session_state["quest_log"] = RecordSchema().load(quest_log, many=True)
+        for log in st.session_state["quest_log"]:
+            print(log)
+        st.session_state["users"] = UserSchema().load(users, many=True)
+        # for log in quest_log:
+        #     load = RecordSchema().load(log)
+        #     st.write(load)
+        # st.session_state["quest_log"] = [
+        # RecordSchema().load(quest) for quest in quest_log
+        # ]
+        # st.session_state["users"] = UserSchema(many=True).load(users)
 
     @classmethod
     def submit_record(cls, record: Record) -> bool:
@@ -33,7 +68,9 @@ class Data:
                 st.warning("Quest or activity submitted, but failed to update scores.")
 
         Database.get_documents.clear(collection="quest_log")
-        st.session_state["quest_log"] = Database.get_documents(collection="quest_log")
+        documents = Database.get_documents(collection="quest_log")
+        st.session_state["quest_log"] = RecordSchema.load(documents, many=True)
+        # st.session_state["quest_log"] = Database.get_documents(collection="quest_log")
 
         return result.acknowledged
 

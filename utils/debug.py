@@ -1,6 +1,7 @@
 import pandas as pd
 import streamlit as st
 
+from utils.data import Data
 from utils.database import Database
 
 
@@ -25,13 +26,12 @@ class Debug:
                 st.header("Scores, Quests, and Activities")
 
                 col_1, col_2, col_3 = st.columns(3)
-                # col_1.button(
-                #     label="Purge",
-                #     help="This will remove _all_ records from the quests collection, use with care",
-                #     on_click=Database.purge,
-                #     key="button_purge",
-                #     use_container_width=True,
-                # )
+                col_1.button(
+                    label="Refresh",
+                    on_click=Data.refresh_data,
+                    key="button_refresh",
+                    use_container_width=True,
+                )
                 # col_2.button(
                 #     label="Random Quest",
                 #     help="This will create and submit a new random entry to the quest log",
@@ -48,14 +48,19 @@ class Debug:
                 # )
 
                 st.dataframe(
-                    data=pd.DataFrame.from_dict(st.session_state.get("scores")),
+                    data=pd.DataFrame.from_dict(st.session_state.get("scores")).drop(
+                        "_id", axis=1
+                    ),
                     use_container_width=True,
                     hide_index=True,
                     column_config={"_id": None},
                 )
 
+                # TODO: This data is stored in session state as a list of objects, not dicts. [x.as_dict() for x in quest_log]
                 st.dataframe(
-                    data=pd.DataFrame.from_records(st.session_state.get("quest_log")),
+                    data=pd.DataFrame.from_records(
+                        st.session_state.get("quest_log")
+                    ).drop("_id", axis=1),
                     use_container_width=True,
                     hide_index=True,
                     column_config={"_id": None},
@@ -81,7 +86,9 @@ class Debug:
                 #     )
 
                 st.dataframe(
-                    data=pd.DataFrame.from_records(st.session_state.get("users")),
+                    data=pd.DataFrame.from_records(st.session_state.get("users")).drop(
+                        "_id", axis=1
+                    ),
                     use_container_width=True,
                     hide_index=True,
                 )

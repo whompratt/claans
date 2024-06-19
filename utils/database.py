@@ -2,6 +2,7 @@ from typing import List
 
 import pymongo
 import pymongo.collection
+import pymongo.cursor
 import pymongo.database
 import streamlit as st
 
@@ -79,8 +80,8 @@ class Database:
         Returns:
             pymongo.collection.Collection object which can be used to interact with documents in the collection.
         """
-        database = cls.get_database(database)
-        return database.get_collection(collection)
+        _database = cls.get_database(database)
+        return _database.get_collection(collection)
 
     @classmethod
     @st.cache_data(ttl=3600)
@@ -105,8 +106,8 @@ class Database:
         Returns:
             List[dict] object where each dict is a document.
         """
-        collection = cls.get_collection(collection, database)
-        return list(collection.find(filter))
+        _collection = cls.get_collection(collection, database)
+        return list(_collection.find(filter))
 
     @classmethod
     def update_score(cls, record: Record) -> bool:

@@ -1,9 +1,12 @@
 import random
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime
 from enum import Enum, IntEnum
 
+from marshmallow import Schema, fields, post_load
+
 from utils.claans import Claans
+from utils.object_id import ObjectID
 
 
 class RecordType(IntEnum):
@@ -48,18 +51,38 @@ class Record:
     claan: Claans
     type: RecordType
     dice: Dice
+    score: int = None
+    timestamp: datetime = None
+    _id: str = None
 
     def __post_init__(self):
-        self.score = self.dice.roll()
-        self.timestamp = datetime.now(tz=timezone.utc)
+        if self.score is None:
+            self.score = self.dice.roll()
+        if self.timestamp is None:
+            self.timestamp = datetime.now()
 
-    def to_dict(self):
-        """Returns this record as a formatted dict."""
-        return {
-            "user": self.user,
-            "claan": self.claan.name,
-            "type": self.type.name,
-            "dice": self.dice.name,
-            "score": self.score,
-            "timestamp": self.timestamp,
-        }
+    # TODO: Delete this entirely after confirming no use
+    # def to_dict(self):
+    #     """Returns this record as a formatted dict."""
+    #     return {
+    #         "user": self.user,
+    #         "claan": self.claan.name,
+    #         "type": self.type.name,
+    #         "dice": self.dice.name,
+    #         "score": self.score,
+    #         "timestamp": self.timestamp,
+    #     }
+
+
+class RecordSchema(Schema):
+    _id = ObjectID(allow_none=True)
+    user = fields.Str()
+    claan = fields.Enum(Claans)
+    type = fields.Enum(RecordType)
+    dice = fields.Enum(Dice)
+    score = fields.Int()
+    timestamp = fields.Raw()
+
+    @post_load
+    def make_record(self, data, **kwargs):
+        return Record(**data)
