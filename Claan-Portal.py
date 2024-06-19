@@ -1,7 +1,6 @@
 import pathlib
 
 import streamlit as st
-
 from utils.claans import Claans
 from utils.database import Database
 from utils.debug import Debug
@@ -46,9 +45,11 @@ def init_page() -> None:
         cols = zip(Claans, st.columns(len(Claans)))
         for claan, col in cols:
             with col:
-                st.image(
-                    str(pathlib.Path(f"./assets/images/{claan.name.lower()}_hex.png"))
+                claan_img = pathlib.Path(
+                    f"./assets/images/{claan.name.lower()}_hex.png"
                 )
+                if claan_img.exists():
+                    st.image(str(claan_img))
                 st.metric(
                     label=claan.value,
                     value=next(

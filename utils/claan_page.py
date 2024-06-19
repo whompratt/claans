@@ -97,13 +97,11 @@ class ClaanPage:
                 col_3.metric("Quests Completed", 0)
                 col_4.metric("Activities Completed", 0)
             with header_right:
-                st.image(
-                    str(
-                        pathlib.Path(
-                            f"./assets/images/{self.claan.name.lower()}_hex.png"
-                        )
-                    )
+                claan_img = pathlib.Path(
+                    f"./assets/images/{self.claan.name.lower()}_hex.png"
                 )
+                if claan_img.exists():
+                    st.image(str(claan_img))
 
         st.divider()
 
