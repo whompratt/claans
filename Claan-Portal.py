@@ -1,19 +1,25 @@
 import pathlib
 
+import mongoengine
 import streamlit as st
-from utils.claans import Claans
-from utils.database import Database
-from utils.debug import Debug
 
-# Set the page title and icon and set layout to "wide" to minimise margains
-st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
+from models.score import Score
+from utils.claans import Claans
+from utils.data import Data
 
 
 def init_page() -> None:
+    st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
+    mongoengine.connect(**st.secrets["mongo"])
+
+    if "records" not in st.session_state:
+        st.session_state["records"] = Data.get_records()
     if "scores" not in st.session_state:
-        st.session_state["scores"] = Database.get_collection(collection="scores")
-    if "quest_log" not in st.session_state:
-        st.session_state["quest_log"] = Database.get_collection(collection="quest_log")
+        st.session_state["scores"] = Data.get_scores()
+    if "tasks" not in st.session_state:
+        st.session_state["tasks"] = Data.get_tasks()
+    if "users" not in st.session_state:
+        st.session_state["users"] = Data.get_users()
 
     # --- HEADER --- #
     with st.container():
@@ -32,7 +38,7 @@ def init_page() -> None:
             "Welcome to season 4 of Claans at Advancing Analytics. This time around things are taking a more relaxed turn, but we're retaining a healthy dose of that Claans flair!"
         )
         st.write(
-            "Using the Claan Portal you can see the scores as they currently stand, this fortnights quests, and also access the Claan area to log quests, steps, and activities!"
+            "Using the Claan Portal you can see the scores as they currently stand, this fortnights tasks, and also access the Claan area to log quests, steps, and activities!"
         )
     # --- HEADER ---#
 
@@ -50,13 +56,10 @@ def init_page() -> None:
                 )
                 if claan_img.exists():
                     st.image(str(claan_img))
+
                 st.metric(
                     label=claan.value,
-                    value=next(
-                        document["score"]
-                        for document in st.session_state["scores"]
-                        if document["claan"] == claan.name
-                    ),
+                    value=Score.objects.get(claan=Claans(claan)).score,
                 )
     # --- SCORES --- #
 
@@ -91,7 +94,7 @@ def init_page() -> None:
 
         st.subheader("Steps")
         st.write(
-            "Steps are back! If you complete 10,000 or more steps in a day, then you can submit that quest and get a D4!"
+            "Steps are back! If you complete 10,000 or more steps in a day, then you can submit that task and get a D4!"
         )
 
         st.subheader("Activities")
@@ -105,9 +108,6 @@ def init_page() -> None:
 
 
 def main() -> None:
-    if st.secrets.env.get("debug"):
-        Debug()
-
     init_page()
 
 

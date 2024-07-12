@@ -1,18 +1,13 @@
-import json
 import pathlib
 
+import mongoengine
 import streamlit as st
 
 from utils.claans import Claans
-from utils.database import Database
-from utils.record import RecordSchema
-from utils.user import UserSchema
+from utils.data import Data
 
 
 class ClaanPage:
-    with open("./settings.json") as settings_file:
-        settings = json.load(settings_file)
-
     def __init__(self, claan: Claans) -> None:
         self.claan = claan
 
@@ -21,22 +16,12 @@ class ClaanPage:
             page_icon=self.claan.get_icon(),
             layout="wide",
         )
+        mongoengine.connect(**st.secrets["mongo"])
 
-        if "scores" not in st.session_state:
-            scores = Database.get_documents(collection="scores")
-            st.session_state["scores"] = scores
-        if "quest_log" not in st.session_state:
-            quest_log = Database.get_documents(collection="quest_log")
-            st.session_state["quest_log"] = RecordSchema().load(quest_log, many=True)
-        if "users" not in st.session_state:
-            users = Database.get_documents(collection="users")
-            st.session_state["users"] = UserSchema().load(users, many=True)
+        Data.load_data()
         if f"users_{self.claan.name}" not in st.session_state:
-            this_claan_users = Database.get_documents(
-                collection="users", filter={"user_claan": self.claan.name}
-            )
-            st.session_state[f"users_{self.claan.name}"] = UserSchema().load(
-                this_claan_users, many=True
+            st.session_state[f"users_{self.claan.name}"] = Data.get_users(
+                {"claan": self.claan.name}
             )
 
         self.build_claan_page()
@@ -86,15 +71,15 @@ class ClaanPage:
 
                 col_1, col_2, col_3, col_4 = st.columns(4)
                 col_1.metric(
-                    "Overall Score",
-                    next(
-                        document["score"]
-                        for document in st.session_state["scores"]
-                        if document["claan"] == self.claan.name
+                    label="Overall Score",
+                    value=next(
+                        score.score
+                        for score in st.session_state["scores"]
+                        if score.claan == self.claan
                     ),
                 )
                 col_2.metric("Fortnight Score", 0)
-                col_3.metric("Quests Completed", 0)
+                col_3.metric("Tasks Completed", 0)
                 col_4.metric("Activities Completed", 0)
             with header_right:
                 claan_img = pathlib.Path(

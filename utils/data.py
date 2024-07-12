@@ -1,94 +1,168 @@
+from typing import List
+
+import mongoengine
 import streamlit as st
 
-from utils.database import Database
-from utils.quest import Quest
-from utils.record import Record, RecordSchema
-from utils.user import UserSchema
+from models.record import Record
+from models.score import Score
+from models.task import Task
+from models.user import User
+from utils.claans import Claans
 
 
 class Data:
-    """Handles communication between Database and Streamlit pages."""
+    """Handles communication between the Database and Streamlit pages."""
 
     @classmethod
-    def refresh_data(cls) -> None:
-        """Clears existing cache for Database.get_documents() and reloads documents into st.session_date."""
-        Database.get_documents.clear()
-        scores = Database.get_documents(collection="scores")
-        quest_log = Database.get_documents(collection="quest_log")
-        users = Database.get_documents(collection="users")
-
-        # for log in quest_log:
-        #     st.write(log)
-
-        # test_records = [
-        #     Record("User Name", Claans.EARTH_STRIDERS, RecordType.ACTIVITY, Dice.D10),
-        #     Record("Another User", Claans.FIRE_DANCERS, RecordType.QUEST, Dice.D12),
-        # ]
-
-        # test_dump = RecordSchema().dump(test_records, many=True)
-        # test_load = RecordSchema().load(test_dump, many=True)
-        # for loaded in test_load:
-        #     st.write(loaded)
-
-        st.session_state["scores"] = scores
-        st.session_state["quest_log"] = RecordSchema().load(quest_log, many=True)
-        for log in st.session_state["quest_log"]:
-            print(log)
-        st.session_state["users"] = UserSchema().load(users, many=True)
-        # for log in quest_log:
-        #     load = RecordSchema().load(log)
-        #     st.write(load)
-        # st.session_state["quest_log"] = [
-        # RecordSchema().load(quest) for quest in quest_log
-        # ]
-        # st.session_state["users"] = UserSchema(many=True).load(users)
+    def init_data(cls) -> None:
+        # Scores
+        for claan in Claans:
+            if not Score.objects.get(claan=claan):
+                Score(claan=Claans(claan)).save()
 
     @classmethod
-    def submit_record(cls, record: Record) -> bool:
-        """
-        Submits a new document to the `quest_log` collection recording the completion of a quest or activity.
-
-        This function _inserts_ a new document, so no filter is performed against the collection in order to keep this class as streamlined as possible.
-        As such, validation of whether a user should be able to submit this quest or activity should be performed before calling this function.
-
-        Args:
-            record: instance of class `Record` defining the data to submit.
-
-        Returns:
-            bool: True on successful submission.
-        """
-        quest_log = Database.get_collection("quest_log")
-        _ = Database.get_documents(collection="quest_log")  # Prevents reloads
-
-        result = quest_log.insert_one(record.to_dict())
-
-        # TODO: Should this be an exception? Once we're in this state we're fucked.
-        if result.acknowledged:
-            if not cls.update_score(record):
-                st.warning("Quest or activity submitted, but failed to update scores.")
-
-        Database.get_documents.clear(collection="quest_log")
-        documents = Database.get_documents(collection="quest_log")
-        st.session_state["quest_log"] = RecordSchema.load(documents, many=True)
-        # st.session_state["quest_log"] = Database.get_documents(collection="quest_log")
-
-        return result.acknowledged
+    def load_data(cls) -> None:
+        """Convenience function to load most of the relevant data at once."""
+        if "records" not in st.session_state:
+            st.session_state["records"] = Data.get_records()
+        if "scores" not in st.session_state:
+            st.session_state["scores"] = Data.get_scores()
+        if "tasks" not in st.session_state:
+            st.session_state["tasks"] = Data.get_tasks()
+        if "active" not in st.session_state:
+            st.session_state["active"] = Data.get_tasks({"active": True})
+        if "users" not in st.session_state:
+            st.session_state["users"] = Data.get_users()
 
     @classmethod
-    def update_score(cls, record: Record) -> bool:
-        return True
+    def refresh_all(cls) -> None:
+        st.session_state["records"] = Data.get_records()
+        st.session_state["scores"] = Data.get_scores()
+        st.session_state["tasks"] = Data.get_tasks()
+        st.session_state["users"] = Data.get_users()
 
     @classmethod
-    def define_quest(cls, quest: Quest) -> bool:
+    def get_records(cls, filter: dict = None) -> List[Record]:
+        """Returns all documents from the records collection in the database."""
+        if filter is not None:
+            return Record.objects(**filter)
+        else:
+            return Record.objects()
+
+    @classmethod
+    def get_scores(cls, filter: dict = None) -> dict:
+        """Returns all documents from the scores collection in the database."""
+        if filter is not None:
+            return Score.objects(**filter)
+        else:
+            return Score.objects()
+
+    @classmethod
+    def set_score(cls) -> None:
+        """Reads claan and value from session state and sets that claan to that score."""
+        Score.objects(claan=st.session_state["set_score_claan"]).update(
+            score=st.session_state["set_score_value"]
+        )
+        st.session_state["scores"] = Data.get_scores()
+
+    @classmethod
+    def get_tasks(cls, filter: dict = None) -> List[Task]:
         """
-        Submits a quest or activity definition to the database.
+        Returns all documents from the tasks collection in the database.
 
-        Takes an instance of Quest as input, ensuring format consistency across definitions.
+        Define a filter as a dict, where key is column to filter on, and value is value to filter for.
+        This dict will be **'d into the objects filters.
 
-        Returns:
-            bool: True on successful submission.
+        E.g.
+        filter = {
+            "type": RecordType.Quest,
+            "dice": [Dice.D4, Dice.D6],
+        }
+        will become
+        Task.objects(type=RecordType.Quest, dice=[Dice.D4, Dice.D6])
         """
-        quests = Database.get_collection("quests")
+        if filter is not None:
+            return Task.objects(**filter)
+        else:
+            return Task.objects()
 
-        result = quests.insert_one(quest.to_dict())
-        pass
+    @classmethod
+    def add_task(cls) -> bool:
+        """Reads task data from session state and submits new task to the database."""
+
+        task = Task(
+            description=st.session_state["add_task_description"],
+            type=st.session_state["add_task_type"],
+            dice=st.session_state["add_task_dice"],
+            ephemeral=st.session_state["add_task_ephemeral"],
+            last=None,
+        )
+
+        try:
+            task.validate()
+        except mongoengine.errors.ValidationError as e:
+            st.error("Task submission failed validation")
+            st.exception(e)
+        else:
+            try:
+                task.save()
+            except mongoengine.errors.NotUniqueError as e:
+                st.error("Task definition is not unique.")
+                st.exception(e)
+
+        st.session_state["tasks"] = cls.get_tasks()
+
+    @classmethod
+    def delete_task(cls) -> None:
+        """Reads task from session state and deletes it from the database."""
+        task = Task.objects(
+            description=st.session_state["delete_task_description"].description
+        )
+        task.delete()
+
+        st.session_state["tasks"] = cls.get_tasks()
+
+    @classmethod
+    def get_users(cls, filter: dict = None) -> List[User]:
+        """Returns all documents from the users collection in the database."""
+        if filter is not None:
+            return User.objects(**filter)
+        else:
+            return User.objects()
+
+    @classmethod
+    def add_user(cls) -> None:
+        """Uses content in session state to submit a new user."""
+        user = User(
+            name=st.session_state["add_user_name"],
+            claan=st.session_state["add_user_claan"],
+        )
+
+        try:
+            user.validate()
+        except mongoengine.errors.ValidationError as e:
+            st.error("User name is a required field")
+            st.exception(e)
+        else:
+            try:
+                user.save()
+                st.session_state["users"] = cls.get_users()
+                st.session_state[f"users_{user.claan.name}"] = cls.get_users(
+                    {"claan": user.claan}
+                )
+            except mongoengine.errors.NotUniqueError as e:
+                st.error("User name and claan combo must be unique")
+                st.exception(e)
+
+    @classmethod
+    def delete_user(cls) -> None:
+        """Deletes the user found in the session state."""
+        user = cls.get_users(
+            {
+                "claan": st.session_state["delete_user_claan"],
+                "name": st.session_state["delete_user_name"].name,
+            }
+        )
+        user.delete()
+
+        st.session_state["users"] = cls.get_users()
