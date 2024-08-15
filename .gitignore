@@ -165,4 +165,7 @@ secrets.toml
 # VSCode
 .vscode/
 
+# uv
+uv.lock
+
 *.ini

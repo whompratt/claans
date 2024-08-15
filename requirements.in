@@ -2,3 +2,8 @@ streamlit
 pymongo
 marshmallow
 mongoengine
+sqlalchemy
+psycopg2-binary
+faker
+pytest
+loguru
