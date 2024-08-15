@@ -1,4 +1,5 @@
 import pathlib
+from time import time
 
 import streamlit as st
 
@@ -11,9 +12,9 @@ from src.utils.logger import LOGGER
 
 
 def init_page() -> None:
-    LOGGER.info("Beginning page initialisation for Claan-Portal.py")
     st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
+    start = time()
     with Database.get_session() as session:
         if "records" not in st.session_state:
             st.session_state["records"] = Database.get_all_rows(
@@ -29,7 +30,10 @@ def init_page() -> None:
             )
         if "scores" not in st.session_state or True:
             st.session_state["scores"] = Database.get_claan_scores(session=session)
+    stop = time()
+    LOGGER.info(f"Completed data loading in: {stop - start}")
 
+    start = time()
     # --- HEADER --- #
     with st.container():
         col_header, col_logo = st.columns((3, 0.8))
@@ -114,10 +118,15 @@ def init_page() -> None:
             "The nature of these activities will change on a regular basis, to keep things fresh and interesting."
         )
     # --- INFO --- #
+    stop = time()
+    LOGGER.info(f"Completed page building in: {stop - start}")
 
 
 def main() -> None:
+    start = time()
     init_page()
+    stop = time()
+    LOGGER.info(f"Completed page loading in: {stop - start}")
 
 
 if __name__ == "__main__":
