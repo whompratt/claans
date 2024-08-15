@@ -18,7 +18,7 @@ from src.models.record import Record
 from src.models.season import Season
 from src.models.task import Task, TaskType
 from src.models.user import User
-from src.utils.logger import LOGGER, log_crud
+from src.utils.logger import LOGGER
 
 
 class Database:
@@ -80,14 +80,12 @@ class Database:
 
     @classmethod
     @_Decorators.with_session
-    @log_crud
     def insert(cls, row: Type[Base], session: Optional[Session] = None) -> None:
         session.add(row)
 
     # TODO: Can this be overloaded to handle either a filter or a sequence of objects?
     @classmethod
     @_Decorators.with_session
-    @log_crud
     def delete(
         cls,
         model: Type[Base],
@@ -101,7 +99,6 @@ class Database:
 
     @classmethod
     @_Decorators.with_session
-    @log_crud
     def get_all_rows(
         cls, model: Type[Base], session: Optional[Session] = None
     ) -> List[Type[Base]]:
@@ -112,7 +109,6 @@ class Database:
 
     @classmethod
     @_Decorators.with_session
-    @log_crud
     def get_rows(
         cls,
         model: Type[Base],
@@ -155,7 +151,6 @@ class Database:
 
     @classmethod
     @_Decorators.with_session
-    @log_crud
     def get_claan_scores(cls, session: Optional[Session] = None) -> Dict[Claan, int]:
         """Returns a formatted dict of Claans and their scores for the current Season."""
         query_season = select(func.max(Season.start_date))
@@ -176,7 +171,6 @@ class Database:
 
     @classmethod
     @_Decorators.with_session
-    @log_crud
     def get_active_quests(cls, session: Optional[Session] = None) -> List[Task]:
         query = (
             select(Task)
@@ -190,7 +184,6 @@ class Database:
 
     @classmethod
     @_Decorators.with_session
-    @log_crud
     def get_active_activities(cls, session: Optional[Session] = None) -> List[Task]:
         query = (
             select(Task)
@@ -204,7 +197,6 @@ class Database:
 
     @classmethod
     @_Decorators.with_session
-    @log_crud
     def get_fortnight(
         cls, timestamp: Optional[date] = None, session: Optional[Session] = None
     ) -> int:

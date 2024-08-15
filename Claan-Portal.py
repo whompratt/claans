@@ -7,9 +7,11 @@ from src.models.record import Record
 from src.models.task import Task
 from src.models.user import User
 from src.utils.database import Database
+from src.utils.logger import LOGGER
 
 
 def init_page() -> None:
+    LOGGER.info("Beginning page initialisation for Claan-Portal.py")
     st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
     with Database.get_session() as session:

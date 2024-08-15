@@ -10,6 +10,9 @@ from src.utils.logger import LOGGER
 
 class ClaanPage:
     def __init__(self, claan: Claan) -> None:
+        LOGGER.info(
+            f"Beginning page initialisation for claan_page.py with claan {claan}"
+        )
         self.claan = claan
 
         st.set_page_config(
