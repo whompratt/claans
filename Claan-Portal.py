@@ -1,25 +1,32 @@
 import pathlib
 
-import mongoengine
 import streamlit as st
 
-from models.score import Score
-from utils.claans import Claans
-from utils.data import Data
+from src.models.claan import Claan
+from src.models.record import Record
+from src.models.task import Task
+from src.models.user import User
+from src.utils.database import Database
 
 
 def init_page() -> None:
     st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
-    mongoengine.connect(**st.secrets["mongo"])
 
-    if "records" not in st.session_state:
-        st.session_state["records"] = Data.get_records()
-    if "scores" not in st.session_state:
-        st.session_state["scores"] = Data.get_scores()
-    if "tasks" not in st.session_state:
-        st.session_state["tasks"] = Data.get_tasks()
-    if "users" not in st.session_state:
-        st.session_state["users"] = Data.get_users()
+    with Database.get_session() as session:
+        if "records" not in st.session_state:
+            st.session_state["records"] = Database.get_all_rows(
+                model=Record, session=session
+            )
+        if "tasks" not in st.session_state:
+            st.session_state["tasks"] = Database.get_all_rows(
+                model=Task, session=session
+            )
+        if "users" not in st.session_state:
+            st.session_state["users"] = Database.get_all_rows(
+                model=User, session=session
+            )
+        if "scores" not in st.session_state or True:
+            st.session_state["scores"] = Database.get_claan_scores(session=session)
 
     # --- HEADER --- #
     with st.container():
@@ -48,7 +55,7 @@ def init_page() -> None:
     with st.container():
         st.header("Scores")
 
-        cols = zip(Claans, st.columns(len(Claans)))
+        cols = zip(Claan, st.columns(len(Claan)))
         for claan, col in cols:
             with col:
                 claan_img = pathlib.Path(
@@ -59,7 +66,7 @@ def init_page() -> None:
 
                 st.metric(
                     label=claan.value,
-                    value=Score.objects.get(claan=Claans(claan)).score,
+                    value=st.session_state["scores"][claan],
                 )
     # --- SCORES --- #
 

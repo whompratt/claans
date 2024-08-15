@@ -3,11 +3,9 @@ from typing import List
 import mongoengine
 import streamlit as st
 
-from models.record import Record
-from models.score import Score
-from models.task import Task
-from models.user import User
-from utils.claans import Claans
+from src.models.claan import Claan
+from src.models.record import Record
+from src.models.task import Task
 
 
 class Data:
@@ -16,9 +14,9 @@ class Data:
     @classmethod
     def init_data(cls) -> None:
         # Scores
-        for claan in Claans:
-            if not Score.objects.get(claan=claan):
-                Score(claan=Claans(claan)).save()
+        for claan in Claan:
+            if not Claan.objects.get(claan=claan):
+                Claan(claan=Claan(claan)).save()
 
     @classmethod
     def load_data(cls) -> None:
@@ -53,14 +51,14 @@ class Data:
     def get_scores(cls, filter: dict = None) -> dict:
         """Returns all documents from the scores collection in the database."""
         if filter is not None:
-            return Score.objects(**filter)
+            return Claan.objects(**filter)
         else:
-            return Score.objects()
+            return Claan.objects()
 
     @classmethod
     def set_score(cls) -> None:
         """Reads claan and value from session state and sets that claan to that score."""
-        Score.objects(claan=st.session_state["set_score_claan"]).update(
+        Claan.objects(claan=st.session_state["set_score_claan"]).update(
             score=st.session_state["set_score_value"]
         )
         st.session_state["scores"] = Data.get_scores()
@@ -79,7 +77,7 @@ class Data:
             "dice": [Dice.D4, Dice.D6],
         }
         will become
-        Task.objects(type=RecordType.Quest, dice=[Dice.D4, Dice.D6])
+        Tasks.objects(type=RecordType.Quest, dice=[Dice.D4, Dice.D6])
         """
         if filter is not None:
             return Task.objects(**filter)
@@ -92,7 +90,7 @@ class Data:
 
         task = Task(
             description=st.session_state["add_task_description"],
-            type=st.session_state["add_task_type"],
+            task_type=st.session_state["add_task_type"],
             dice=st.session_state["add_task_dice"],
             ephemeral=st.session_state["add_task_ephemeral"],
             last=None,

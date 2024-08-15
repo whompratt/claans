@@ -1,7 +1,11 @@
 from enum import Enum
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    pass
 
 
-class Claans(Enum):
+class Claan(Enum):
     EARTH_STRIDERS = "Earth Striders"
     FIRE_DANCERS = "Fire Dancers"
     THUNDER_WALKERS = "Thunder Walkers"
