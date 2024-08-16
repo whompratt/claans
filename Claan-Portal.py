@@ -5,6 +5,7 @@ import streamlit as st
 from src.models.claan import Claan
 from src.models.record import Record
 from src.utils.database import Database
+from src.utils.logger import LOGGER
 
 
 def init_page() -> None:
@@ -106,4 +107,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    LOGGER.info("Log test, INFO")
+    LOGGER.debug("Log test, DEBUG")
+    LOGGER.warning("Log test, WARNING")
     main()
