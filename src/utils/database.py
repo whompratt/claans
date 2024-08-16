@@ -94,7 +94,7 @@ class Database:
         for k, v in filter.items():
             query = query.where(getattr(model, k) == v)
 
-        result = _session.execute(query).all()
+        result = _session.execute(query).scalars().all()
         return result
 
     # @classmethod
