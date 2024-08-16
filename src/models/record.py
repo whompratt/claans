@@ -1,6 +1,7 @@
 from datetime import date
 from typing import Dict
 
+import streamlit as st
 from sqlalchemy import ForeignKey, func, select
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
@@ -58,6 +59,7 @@ class Record(Base):
         self.user_id = user if isinstance(user, int) else user.id
 
     @classmethod
+    @st.cache_data(ttl=600)
     @timer
     def get_claan_scores(cls, _session: Session) -> Dict[Claan, int]:
         """Returns a formatted dict of Claans and their scores for the current Season."""
