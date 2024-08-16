@@ -48,6 +48,8 @@ class ClaanPage:
             st.warning(
                 "Error submitting quest, it looks like you've already submitted this quest..."
             )
+        else:
+            st.success("Quest submitted!")
 
     def submit_activity(self):
         task = st.session_state["activity_selection"]
@@ -58,6 +60,8 @@ class ClaanPage:
             st.warning(
                 "Error submitting activity, it looks like you've already submitted this activity..."
             )
+        else:
+            st.success("Activity submitted!")
 
     def check_password(self) -> bool:
         def password_entered():
