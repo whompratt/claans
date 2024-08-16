@@ -194,7 +194,7 @@ def set_active_quest_form():
 @st.experimental_fragment
 def set_active_activity_form():
     with st.container(border=True):
-        st.subheader("Set Active Quest")
+        st.subheader("Set Active Activity")
         activity_dice = st.selectbox(
             label="Dice to Update",
             key="set_active_activity_dice",
@@ -370,4 +370,6 @@ def init_page() -> None:
 
 
 if __name__ == "__main__":
+    LOGGER.info("Beginning page initialisation for Claan-Portal.py")
     init_page()
+    LOGGER.info("Finished page initialisation for Claan-Portal.py")
