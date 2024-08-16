@@ -3,6 +3,7 @@ import pathlib
 import streamlit as st
 
 from src.models.claan import Claan
+from src.models.record import Record
 from src.models.user import User
 from src.utils.database import Database
 
@@ -28,10 +29,11 @@ class ClaanPage:
                 )
             if f"users_{self.claan.name}" not in st.session_state:
                 st.session_state[f"users_{self.claan.name}"] = Database.get_rows(
-                    model=User, filter={User.claan: self.claan}, _session=session
+                    model=User, filter={"claan": self.claan}, _session=session
                 )
             if "scores" not in st.session_state or True:
-                st.session_state["scores"] = Database.get_claan_scores(_session=session)
+                st.session_state["scores"] = Record.get_claan_scores(_session=session)
+            session.expunge_all()
 
         self.build_page()
 
