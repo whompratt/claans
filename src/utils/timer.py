@@ -10,7 +10,7 @@ def timer(func):
         start = time()
         result = func(*args, **kwargs)
         end = time()
-        LOGGER.debug(f"Execution time for {func.__name__}: {end-start}")
+        LOGGER.info(f"Execution time for {func.__name__}: {end-start}")
         return result
 
     return _wrapper

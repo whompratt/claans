@@ -5,7 +5,7 @@ from loguru import logger
 
 def create_logger():
     logger.remove()
-    logger.add(stderr, level="DEBUG")
+    logger.add(stderr, level="INFO")
     return logger
 
 
