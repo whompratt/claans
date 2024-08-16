@@ -16,20 +16,20 @@ from src.utils.logger import LOGGER
 def load_data():
     with Database.get_session() as session:
         st.session_state["records"] = Database.get_all_rows(
-            model=Record, session=session
+            model=Record, _session=session
         )
-        st.session_state["tasks"] = Database.get_all_rows(model=Task, session=session)
+        st.session_state["tasks"] = Database.get_all_rows(model=Task, _session=session)
         st.session_state["quests"] = Database.get_rows(
-            model=Task, filter={Task.task_type: TaskType.QUEST}, session=session
+            model=Task, filter={Task.task_type: TaskType.QUEST}, _session=session
         )
         st.session_state["activities"] = Database.get_rows(
-            model=Task, filter={Task.task_type: TaskType.ACTIVITY}, session=session
+            model=Task, filter={Task.task_type: TaskType.ACTIVITY}, _session=session
         )
-        st.session_state["users"] = Database.get_all_rows(model=User, session=session)
-        st.session_state["scores"] = Database.get_claan_scores(session=session)
+        st.session_state["users"] = Database.get_all_rows(model=User, _session=session)
+        st.session_state["scores"] = Database.get_claan_scores(_session=session)
         for claan in Claan:
             st.session_state[f"users_{claan}"] = Database.get_rows(
-                model=User, filter={User.claan: claan}, session=session
+                model=User, filter={User.claan: claan}, _session=session
             )
 
 
@@ -370,6 +370,4 @@ def init_page() -> None:
 
 
 if __name__ == "__main__":
-    LOGGER.info("Beginning page initialisation for Claan-Portal.py")
     init_page()
-    LOGGER.info("Finished page initialisation for Claan-Portal.py")

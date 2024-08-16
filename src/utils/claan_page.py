@@ -5,14 +5,10 @@ import streamlit as st
 from src.models.claan import Claan
 from src.models.user import User
 from src.utils.database import Database
-from src.utils.logger import LOGGER
 
 
 class ClaanPage:
     def __init__(self, claan: Claan) -> None:
-        LOGGER.info(
-            f"Beginning page initialisation for claan_page.py with claan {claan}"
-        )
         self.claan = claan
 
         st.set_page_config(
@@ -24,25 +20,24 @@ class ClaanPage:
         with Database.get_session() as session:
             if "active_quests" not in st.session_state:
                 st.session_state["active_quests"] = Database.get_active_quests(
-                    session=session
+                    _session=session
                 )
             if "active_activities" not in st.session_state:
                 st.session_state["active_activities"] = Database.get_active_activities(
-                    session=session
+                    _session=session
                 )
             if f"users_{self.claan.name}" not in st.session_state:
                 st.session_state[f"users_{self.claan.name}"] = Database.get_rows(
-                    model=User, filter={User.claan: self.claan}, session=session
+                    model=User, filter={User.claan: self.claan}, _session=session
                 )
             if "scores" not in st.session_state or True:
-                st.session_state["scores"] = Database.get_claan_scores(session=session)
+                st.session_state["scores"] = Database.get_claan_scores(_session=session)
 
         self.build_page()
 
     def submit_quest(self):
         task = st.session_state["quest_selection"]
         user = st.session_state["quest_user"]
-        LOGGER.info(f"Attempting quest submission for {user.name}")
         result = Database.submit_record(task=task, user=user)
         if not result:
             st.warning(
@@ -54,7 +49,6 @@ class ClaanPage:
     def submit_activity(self):
         task = st.session_state["activity_selection"]
         user = st.session_state["activity_user"]
-        LOGGER.info(f"Attempting activity submission for {user.name}")
         result = Database.submit_record(task=task, user=user)
         if not result:
             st.warning(
