@@ -168,7 +168,7 @@ class Database:
             season_start: date = _session.execute(query).scalar_one()
             fortnight_start = season_start + timedelta(weeks=(fortnight * 2))
             query = (
-                select(func.count)
+                select(func.count())
                 .select_from(Record)
                 .where(
                     Record.user_id == user.id,
@@ -181,7 +181,7 @@ class Database:
         else:
             # Check day
             query = (
-                select(func.count)
+                select(func.count())
                 .select_from(Record)
                 .where(
                     Record.user_id == user.id,
