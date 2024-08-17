@@ -167,19 +167,27 @@ class Database:
             query = select(func.max(Season.start_date))
             season_start: date = _session.execute(query).scalar_one()
             fortnight_start = season_start + timedelta(weeks=(fortnight * 2))
-            query = select(Record).where(
-                Record.user_id == user.id,
-                Record.task_id == task.id,
-                Record.timestamp >= fortnight_start,
+            query = (
+                select(func.count)
+                .select_from(Record)
+                .where(
+                    Record.user_id == user.id,
+                    Record.task_id == task.id,
+                    Record.timestamp >= fortnight_start,
+                )
             )
             result = _session.execute(query).scalar_one_or_none()
             pass
         else:
             # Check day
-            query = select(Record).where(
-                Record.user_id == user.id,
-                Record.task_id == task.id,
-                Record.timestamp >= date.today(),
+            query = (
+                select(func.count)
+                .select_from(Record)
+                .where(
+                    Record.user_id == user.id,
+                    Record.task_id == task.id,
+                    Record.timestamp >= date.today(),
+                )
             )
             result = _session.execute(query).scalar_one_or_none()
 
