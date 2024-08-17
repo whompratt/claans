@@ -3,7 +3,7 @@ import pathlib
 import streamlit as st
 
 from src.models.claan import Claan
-from src.models.record import Record
+from src.utils import data
 from src.utils.database import Database
 
 
@@ -11,9 +11,8 @@ def init_page() -> None:
     st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
     with Database.get_session() as session:
-        if "scores" not in st.session_state or True:
-            st.session_state["scores"] = Record.get_claan_scores(_session=session)
-        session.expunge_all()
+        if "scores" not in st.session_state:
+            st.session_state["scores"] = data.get_scores(_session=session)
 
     # --- HEADER --- #
     with st.container():

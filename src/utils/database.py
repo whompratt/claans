@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 from math import floor
 from pathlib import Path
-from typing import List, Optional, Type
+from typing import Dict, List, Optional, Type
 
 import streamlit as st
 import toml
@@ -18,6 +18,7 @@ from src.models.season import Season
 from src.models.task import Task, TaskType
 from src.models.user import User
 from src.utils.logger import LOGGER
+from src.utils.timer import timer
 
 
 class Database:
@@ -55,17 +56,18 @@ class Database:
 
         # TODO: Where the hell should this go?!
         Base.metadata.create_all(bind=engine)
-        maker = sessionmaker(bind=engine, expire_on_commit=False)
+        maker = sessionmaker(bind=engine)
 
         return maker()
 
     @classmethod
-    @st.cache_data(ttl=3600)
+    @timer
+    @st.cache_data(ttl=3600, hash_funcs={Type[Base]: lambda model: model.__name__})
     def get_rows(
         cls,
         _session: Session,
         model: Type[Base],
-        filter: Optional[dict] = None,
+        filter: Optional[Dict[str, str]] = None,
     ) -> List[Type[Base]]:
         """Return a :class:`List[sqlalchemy.engine.Row]` models that match the input query.
 
@@ -91,34 +93,15 @@ class Database:
         :return: List of :class:`sqlalchemy.engine.Row` models that matched the query filter.
         """
         query = select(model)
-        for k, v in filter.items():
-            query = query.where(getattr(model, k) == v)
+        if filter is not None:
+            for k, v in filter.items():
+                query = query.where(getattr(model, k) == v)
 
         result = _session.execute(query).scalars().all()
         return result
 
-    # @classmethod
-    # @st.cache_data(ttl=3600)
-    # def get_claan_scores(cls, _session: Session) -> Dict[Claan, int]:
-    #     """Returns a formatted dict of Claans and their scores for the current Season."""
-    #     session = cls.get_session() if _session is None else _session
-    #     query = select(func.max(Season.start_date))
-    #     season = session.scalar(query)
-
-    #     query = (
-    #         select(Record.claan, func.sum(Record.score).label("score"))
-    #         .where(Record.timestamp >= season)
-    #         .group_by("claan")
-    #     )
-    #     result = session.execute(query).all()
-
-    #     scores: dict = {claan: 0 for claan in Claan}
-    #     for row in result:
-    #         scores[row.claan] = row.score
-
-    #     return scores
-
     @classmethod
+    @timer
     @st.cache_data(ttl=3600)
     def get_active_quests(cls, _session: Session) -> List[Task]:
         session = cls.get_session() if _session is None else _session
@@ -133,6 +116,7 @@ class Database:
         return result
 
     @classmethod
+    @timer
     @st.cache_data(ttl=3600)
     def get_active_activities(cls, _session: Session) -> List[Task]:
         session = cls.get_session() if _session is None else _session
@@ -147,6 +131,7 @@ class Database:
         return result
 
     @classmethod
+    @timer
     @st.cache_data(ttl=3600)
     def get_fortnight(
         cls,
@@ -172,6 +157,7 @@ class Database:
         weeks = floor(weeks / 2)
 
     @classmethod
+    @timer
     def submit_record(cls, _session: Session, task: Task, user: User) -> bool:
         if task.dice == Dice.D12:
             # Check fortnight

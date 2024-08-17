@@ -1,88 +1,49 @@
-from typing import Callable
+from typing import Type
 
 import pandas as pd
 import streamlit as st
 from sqlalchemy import select
 
+from src.models.base import Base
 from src.models.claan import Claan
 from src.models.dice import Dice
-from src.models.record import Record
 from src.models.task import Task, TaskType
 from src.models.user import User
+from src.utils import data
 from src.utils.database import Database, initialise
 from src.utils.logger import LOGGER
 
 
 def load_data():
     with Database.get_session() as session:
-        st.session_state["records"] = Database.get_rows(model=Record, _session=session)
-        st.session_state["tasks"] = Database.get_rows(model=Task, _session=session)
-        st.session_state["quests"] = Database.get_rows(
-            model=Task, filter={Task.task_type: TaskType.QUEST}, _session=session
-        )
-        st.session_state["activities"] = Database.get_rows(
-            model=Task, filter={Task.task_type: TaskType.ACTIVITY}, _session=session
-        )
-        st.session_state["users"] = Database.get_rows(model=User, _session=session)
-        st.session_state["scores"] = Record.get_claan_scores(_session=session)
+        st.session_state["tasks"] = data.get_tasks(_session=session)
+        st.session_state["users"] = data.get_users(_session=session)
         for claan in Claan:
-            st.session_state[f"users_{claan}"] = Database.get_rows(
-                model=User, filter={User.claan: claan}, _session=session
+            st.session_state[f"users_{claan}"] = data.get_claan_users(
+                _session=session, claan=claan
             )
 
 
-def action_handler(callback: Callable, *_, **kwargs):
-    match callback:
-        case Database.insert:
-            row = kwargs["model"](
-                **{
-                    key: st.session_state[value]
-                    for key, value in kwargs["attr"].items()
-                }
-            )
-            callback(row=row)
-        case Database.delete:
-            filter = None
-
-            match kwargs["model"].__name__:
-                case "User" | "Task":
-                    filter = {
-                        getattr(kwargs["model"], key): getattr(
-                            st.session_state[value], key
-                        )
+def action_handler(action: str, model: Type[Base], **kwargs):
+    with Database.get_session() as session:
+        match action:
+            case "insert":
+                row = model(
+                    **{
+                        key: st.session_state[value]
                         for key, value in kwargs["attr"].items()
                     }
-                case _:
-                    LOGGER.warning(
-                        f"No case defined for model {kwargs["model"].__name__}"
-                    )
+                )
+                session.add(row)
+            case "delete":
+                query = select(model)
+                for key, value in kwargs["attr"].items():
+                    query = query.where(getattr(model, key) == st.session_state[value])
+                session.execute(query)
+            case _:
+                LOGGER.warning(f"No {action} defined for model {model}")
 
-            if filter is not None:
-                callback(model=kwargs["model"], filter=filter)
-            else:
-                LOGGER.warning("Delete operation blocked, filter is empty.")
-        case _:
-            LOGGER.warning(f"No case defined for callback {callback.__name__}")
-
-    load_data()
-
-
-def set_active(task_type: TaskType, dice: str, selection: str):
-    # 1. Find current active task with same type and die
-    # 2. Set current active task to inactive
-    # 3. Update new selection to active
-    with Database.get_session() as session, session.begin():
-        current = session.execute(
-            select(Task).filter_by(
-                task_type=task_type,
-                dice=st.session_state[dice],
-                active=True,
-            )
-        ).scalar_one_or_none()
-        new = session.get(Task, st.session_state[selection].id)
-        if current:
-            current.active = False
-        new.active = True
+    Database.get_rows.clear(model=model)
 
 
 def check_password():
@@ -138,19 +99,81 @@ def delete_user_form():
             type="primary",
             disabled=not submit_enabled,
             on_click=action_handler,
-            args=(Database.delete,),
-            # kwargs={
-            #     "model": User,
-            #     "filter": {User.id: st.session_state["delete_user_selection"].id}
-            #     if st.session_state["delete_user_selection"] is not None
-            #     else None,
-            # },
             kwargs={
+                "action": "delete",
                 "model": User,
                 "attr": {"id": "delete_user_selection"},
             },
         ):
             st.rerun()
+
+
+def user_management() -> None:
+    with st.container(border=True):
+        st.subheader("User Management")
+
+        col_df, col_forms = st.columns(2)
+
+        with col_df:
+            df_users = pd.DataFrame.from_records(
+                data=[vars(user) for user in st.session_state["users"]]
+            )
+            if "_sa_instance_state" in df_users.columns:
+                df_users.drop("_sa_instance_state", inplace=True, axis=1)
+            if "claan" in df_users.columns:
+                df_users["claan"] = df_users["claan"].apply(lambda x: x.value)
+
+            st.dataframe(
+                data=df_users,
+                use_container_width=True,
+                hide_index=True,
+                column_config={"name": "Name", "claan": "Claan"},
+            )
+        with col_forms:
+            with st.form(key="add_user", clear_on_submit=True, border=True):
+                st.subheader("Add User")
+                st.text_input(label="Name", key="add_user_name", placeholder="John Doe")
+                st.selectbox(
+                    label="Claan",
+                    key="add_user_claan",
+                    options=Claan,
+                    format_func=lambda claan: claan.value,
+                )
+                st.form_submit_button(
+                    label="Submit",
+                    on_click=action_handler,
+                    kwargs={
+                        "action": "insert",
+                        "model": User,
+                        "attr": {"name": "add_user_name", "claan": "add_user_claan"},
+                    },
+                )
+            delete_user_form()
+
+
+def set_active(task_type: TaskType, dice: str, selection: str):
+    # 1. Find current active task with same type and die
+    # 2. Set current active task to inactive
+    # 3. Update new selection to active
+    with Database.get_session() as session:
+        current = session.execute(
+            select(Task).filter_by(
+                task_type=task_type,
+                dice=st.session_state[dice],
+                active=True,
+            )
+        ).scalar_one_or_none()
+        new = session.get(Task, st.session_state[selection].id)
+        if current:
+            current.active = False
+        new.active = True
+        session.commit()  # TODO: Why is this commit needed? Is auto-commit not working?
+
+        LOGGER.info("Clearing cache")
+        # Database.get_rows.clear(_session=session, model=Task)
+        Database.get_rows.clear(model=Task)
+        LOGGER.info("Updating tasks in session")
+        st.session_state["tasks"] = Database.get_rows(_session=session, model=Task)
 
 
 @st.experimental_fragment
@@ -226,49 +249,6 @@ def set_active_activity_form():
             st.rerun()
 
 
-def user_management() -> None:
-    with st.container(border=True):
-        st.subheader("User Management")
-
-        col_df, col_forms = st.columns(2)
-
-        with col_df:
-            df_users = pd.DataFrame.from_records(
-                data=[vars(user) for user in st.session_state["users"]]
-            )
-            if "_sa_instance_state" in df_users.columns:
-                df_users.drop("_sa_instance_state", inplace=True, axis=1)
-            if "claan" in df_users.columns:
-                df_users["claan"] = df_users["claan"].apply(lambda x: x.value)
-
-            st.dataframe(
-                data=df_users,
-                use_container_width=True,
-                hide_index=True,
-                column_config={"name": "Name", "claan": "Claan"},
-            )
-        with col_forms:
-            with st.form(key="add_user", clear_on_submit=True, border=True):
-                st.subheader("Add User")
-                st.text_input(label="Name", key="add_user_name", placeholder="John Doe")
-                st.selectbox(
-                    label="Claan",
-                    key="add_user_claan",
-                    options=Claan,
-                    format_func=lambda claan: claan.value,
-                )
-                st.form_submit_button(
-                    label="Submit",
-                    on_click=action_handler,
-                    args=(Database.insert,),
-                    kwargs={
-                        "model": User,
-                        "attr": {"name": "add_user_name", "claan": "add_user_claan"},
-                    },
-                )
-            delete_user_form()
-
-
 def task_management() -> None:
     with st.container(border=True):
         st.subheader("Task Management")
@@ -316,8 +296,8 @@ def task_management() -> None:
                 st.form_submit_button(
                     label="Submit",
                     on_click=action_handler,
-                    args=(Database.insert,),
                     kwargs={
+                        "action": "insert",
                         "model": Task,
                         "attr": {
                             "description": "add_task_description",
@@ -338,8 +318,8 @@ def task_management() -> None:
                 st.form_submit_button(
                     label="Submit",
                     on_click=action_handler,
-                    args=(Database.delete,),
                     kwargs={
+                        "action": "delete",
                         "model": Task,
                         "attr": {"id": "delete_task_selection"},
                     },

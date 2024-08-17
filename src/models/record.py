@@ -1,17 +1,13 @@
 from datetime import date
-from typing import Dict
 
-import streamlit as st
-from sqlalchemy import ForeignKey, func, select
-from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
+from sqlalchemy import ForeignKey
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base
 from src.models.claan import Claan
 from src.models.dice import Dice
-from src.models.season import Season
 from src.models.task import Task
 from src.models.user import User
-from src.utils.timer import timer
 
 
 class Record(Base):
@@ -57,24 +53,3 @@ class Record(Base):
 
         self.task_id = task if isinstance(task, int) else task.id
         self.user_id = user if isinstance(user, int) else user.id
-
-    @classmethod
-    @st.cache_data(ttl=600)
-    @timer
-    def get_claan_scores(cls, _session: Session) -> Dict[Claan, int]:
-        """Returns a formatted dict of Claans and their scores for the current Season."""
-        query = select(func.max(Season.start_date))
-        season = _session.scalar(query)
-
-        query = (
-            select(cls.claan, func.sum(cls.score).label("score"))
-            .where(cls.timestamp >= season)
-            .group_by("claan")
-        )
-        result = _session.execute(query).all()
-
-        scores: dict = {claan: 0 for claan in Claan}
-        for row in result:
-            scores[row.claan] = row.score
-
-        return scores

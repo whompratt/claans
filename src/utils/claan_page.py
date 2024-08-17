@@ -3,8 +3,9 @@ import pathlib
 import streamlit as st
 
 from src.models.claan import Claan
-from src.models.record import Record
+from src.models.task import TaskType
 from src.models.user import User
+from src.utils import data
 from src.utils.database import Database
 
 
@@ -20,44 +21,22 @@ class ClaanPage:
 
         with Database.get_session() as session:
             if "active_quests" not in st.session_state:
-                st.session_state["active_quests"] = Database.get_active_quests(
-                    _session=session
+                st.session_state["active_quests"] = data.get_active_tasks(
+                    _session=session, task_type=TaskType.QUEST
                 )
             if "active_activities" not in st.session_state:
-                st.session_state["active_activities"] = Database.get_active_activities(
-                    _session=session
+                st.session_state["active_activities"] = data.get_active_tasks(
+                    _session=session, task_type=TaskType.ACTIVITY
                 )
             if f"users_{self.claan.name}" not in st.session_state:
                 st.session_state[f"users_{self.claan.name}"] = Database.get_rows(
                     model=User, filter={"claan": self.claan}, _session=session
                 )
-            if "scores" not in st.session_state or True:
-                st.session_state["scores"] = Record.get_claan_scores(_session=session)
+            if "scores" not in st.session_state:
+                st.session_state["scores"] = data.get_scores(_session=session)
             session.expunge_all()
 
         self.build_page()
-
-    def submit_quest(self):
-        task = st.session_state["quest_selection"]
-        user = st.session_state["quest_user"]
-        result = Database.submit_record(task=task, user=user)
-        if not result:
-            st.warning(
-                "Error submitting quest, it looks like you've already submitted this quest..."
-            )
-        else:
-            st.success("Quest submitted!")
-
-    def submit_activity(self):
-        task = st.session_state["activity_selection"]
-        user = st.session_state["activity_user"]
-        result = Database.submit_record(task=task, user=user)
-        if not result:
-            st.warning(
-                "Error submitting activity, it looks like you've already submitted this activity..."
-            )
-        else:
-            st.success("Activity submitted!")
 
     def check_password(self) -> bool:
         def password_entered():
@@ -85,6 +64,38 @@ class ClaanPage:
 
         else:
             return True
+
+    def submit_quest(self):
+        with Database.get_session() as session:
+            task = st.session_state["quest_selection"]
+            user = st.session_state["quest_user"]
+            result = Database.submit_record(_session=session, task=task, user=user)
+            if not result:
+                st.warning(
+                    "Error submitting quest, it looks like you've already submitted this quest..."
+                )
+            else:
+                st.success("Quest submitted!")
+
+            session.commit()
+            data.get_scores.clear()
+            st.session_state["scores"] = data.get_scores(_session=session)
+
+    def submit_activity(self):
+        with Database.get_session() as session:
+            task = st.session_state["activity_selection"]
+            user = st.session_state["activity_user"]
+            result = Database.submit_record(_session=session, task=task, user=user)
+            if not result:
+                st.warning(
+                    "Error submitting activity, it looks like you've already submitted this activity..."
+                )
+            else:
+                st.success("Activity submitted!")
+
+            session.commit()
+            data.get_scores.clear()
+            st.session_state["scores"] = data.get_scores(_session=session)
 
     def build_page(self):
         if not self.check_password():
