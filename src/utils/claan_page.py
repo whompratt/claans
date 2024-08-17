@@ -76,10 +76,9 @@ class ClaanPage:
                 )
             else:
                 st.success("Quest submitted!")
-
-            session.commit()
-            data.get_scores.clear()
-            st.session_state["scores"] = data.get_scores(_session=session)
+                session.commit()
+                data.get_scores.clear()
+                st.session_state["scores"] = data.get_scores(_session=session)
 
     def submit_activity(self):
         with Database.get_session() as session:
@@ -92,10 +91,9 @@ class ClaanPage:
                 )
             else:
                 st.success("Activity submitted!")
-
-            session.commit()
-            data.get_scores.clear()
-            st.session_state["scores"] = data.get_scores(_session=session)
+                session.commit()
+                data.get_scores.clear()
+                st.session_state["scores"] = data.get_scores(_session=session)
 
     def build_page(self):
         if not self.check_password():
