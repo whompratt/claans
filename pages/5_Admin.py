@@ -1,17 +1,11 @@
-from typing import Type
-
 import pandas as pd
 import streamlit as st
-from sqlalchemy import select
 
-from src.models.base import Base
 from src.models.claan import Claan
 from src.models.dice import Dice
-from src.models.task import Task, TaskType
-from src.models.user import User
+from src.models.task import TaskType
 from src.utils import data
 from src.utils.database import Database, initialise
-from src.utils.logger import LOGGER
 
 
 def load_data():
@@ -22,28 +16,6 @@ def load_data():
             st.session_state[f"users_{claan}"] = data.get_claan_users(
                 _session=session, claan=claan
             )
-
-
-def action_handler(action: str, model: Type[Base], **kwargs):
-    with Database.get_session() as session:
-        match action:
-            case "insert":
-                row = model(
-                    **{
-                        key: st.session_state[value]
-                        for key, value in kwargs["attr"].items()
-                    }
-                )
-                session.add(row)
-            case "delete":
-                query = select(model)
-                for key, value in kwargs["attr"].items():
-                    query = query.where(getattr(model, key) == st.session_state[value])
-                session.execute(query)
-            case _:
-                LOGGER.warning(f"No {action} defined for model {model}")
-
-    Database.get_rows.clear(model=model)
 
 
 def check_password():
@@ -98,12 +70,8 @@ def delete_user_form():
             "Submit",
             type="primary",
             disabled=not submit_enabled,
-            on_click=action_handler,
-            kwargs={
-                "action": "delete",
-                "model": User,
-                "attr": {"id": "delete_user_selection"},
-            },
+            on_click=data.delete_user,
+            kwargs={"_session": Database.get_session()},
         ):
             st.rerun()
 
@@ -141,39 +109,10 @@ def user_management() -> None:
                 )
                 st.form_submit_button(
                     label="Submit",
-                    on_click=action_handler,
-                    kwargs={
-                        "action": "insert",
-                        "model": User,
-                        "attr": {"name": "add_user_name", "claan": "add_user_claan"},
-                    },
+                    on_click=data.add_user,
+                    kwargs={"_session": Database.get_session()},
                 )
             delete_user_form()
-
-
-def set_active(task_type: TaskType, dice: str, selection: str):
-    # 1. Find current active task with same type and die
-    # 2. Set current active task to inactive
-    # 3. Update new selection to active
-    with Database.get_session() as session:
-        current = session.execute(
-            select(Task).filter_by(
-                task_type=task_type,
-                dice=st.session_state[dice],
-                active=True,
-            )
-        ).scalar_one_or_none()
-        new = session.get(Task, st.session_state[selection].id)
-        if current:
-            current.active = False
-        new.active = True
-        session.commit()  # TODO: Why is this commit needed? Is auto-commit not working?
-
-        LOGGER.info("Clearing cache")
-        # Database.get_rows.clear(_session=session, model=Task)
-        Database.get_rows.clear(model=Task)
-        LOGGER.info("Updating tasks in session")
-        st.session_state["tasks"] = Database.get_rows(_session=session, model=Task)
 
 
 @st.experimental_fragment
@@ -202,12 +141,8 @@ def set_active_quest_form():
             label="Submit",
             key="set_active_quest_submit",
             disabled=not (quest_dice and quest_selection),
-            on_click=set_active,
-            kwargs={
-                "task_type": TaskType.QUEST,
-                "dice": "set_active_quest_dice",
-                "selection": "set_active_quest_selection",
-            },
+            on_click=data.set_active_task,
+            kwargs={"_session": Database.get_session(), "task_type": TaskType.QUEST},
         ):
             st.rerun()
 
@@ -239,11 +174,10 @@ def set_active_activity_form():
             label="Submit",
             key="set_active_activity_submit",
             disabled=not (activity_dice and activity_selection),
-            on_click=set_active,
+            on_click=data.set_active_task,
             kwargs={
+                "_session": Database.get_session(),
                 "task_type": TaskType.ACTIVITY,
-                "dice": "set_active_activity_dice",
-                "selection": "set_active_activity_selection",
             },
         ):
             st.rerun()
@@ -295,17 +229,8 @@ def task_management() -> None:
                 )
                 st.form_submit_button(
                     label="Submit",
-                    on_click=action_handler,
-                    kwargs={
-                        "action": "insert",
-                        "model": Task,
-                        "attr": {
-                            "description": "add_task_description",
-                            "task_type": "add_task_type",
-                            "dice": "add_task_dice",
-                            "ephemeral": "add_task_ephemeral",
-                        },
-                    },
+                    on_click=data.add_task,
+                    kwargs={"_session": Database.get_session()},
                 )
             with st.form(key="delete_task", clear_on_submit=True, border=True):
                 st.subheader("Delete Task")
@@ -317,12 +242,8 @@ def task_management() -> None:
                 )
                 st.form_submit_button(
                     label="Submit",
-                    on_click=action_handler,
-                    kwargs={
-                        "action": "delete",
-                        "model": Task,
-                        "attr": {"id": "delete_task_selection"},
-                    },
+                    on_click=data.delete_task,
+                    kwargs={"_session": Database.get_session()},
                 )
 
 

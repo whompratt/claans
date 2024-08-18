@@ -4,7 +4,6 @@ import streamlit as st
 
 from src.models.claan import Claan
 from src.models.task import TaskType
-from src.models.user import User
 from src.utils import data
 from src.utils.database import Database
 
@@ -20,17 +19,17 @@ class ClaanPage:
         )
 
         with Database.get_session() as session:
-            if "active_quests" not in st.session_state:
-                st.session_state["active_quests"] = data.get_active_tasks(
+            if "active_quest" not in st.session_state:
+                st.session_state["active_quest"] = data.get_active_tasks(
                     _session=session, task_type=TaskType.QUEST
                 )
-            if "active_activities" not in st.session_state:
-                st.session_state["active_activities"] = data.get_active_tasks(
+            if "active_activity" not in st.session_state:
+                st.session_state["active_activity"] = data.get_active_tasks(
                     _session=session, task_type=TaskType.ACTIVITY
                 )
             if f"users_{self.claan.name}" not in st.session_state:
-                st.session_state[f"users_{self.claan.name}"] = Database.get_rows(
-                    model=User, filter={"claan": self.claan}, _session=session
+                st.session_state[f"users_{self.claan.name}"] = data.get_claan_users(
+                    _session=session, claan=self.claan
                 )
             if "scores" not in st.session_state:
                 st.session_state["scores"] = data.get_scores(_session=session)
@@ -149,12 +148,19 @@ class ClaanPage:
 
                 st.radio(
                     label="Quests",
-                    options=st.session_state["active_quests"],
+                    options=st.session_state["active_quest"],
                     format_func=lambda task: task.description,
                     key="quest_selection",
                 )
 
-                st.form_submit_button(label="Submit", on_click=self.submit_quest)
+                st.form_submit_button(
+                    label="Submit",
+                    on_click=data.submit_record,
+                    kwargs={
+                        "_session": Database.get_session(),
+                        "task_type": TaskType.QUEST,
+                    },
+                )
 
         with col_activity:
             with st.form(key="form_activities"):
@@ -169,9 +175,16 @@ class ClaanPage:
 
                 st.radio(
                     label="Activities",
-                    options=st.session_state["active_activities"],
+                    options=st.session_state["active_activity"],
                     format_func=lambda task: task.description,
                     key="activity_selection",
                 )
 
-                st.form_submit_button(label="Sumit", on_click=self.submit_activity)
+                st.form_submit_button(
+                    label="Submit",
+                    on_click=data.submit_record,
+                    kwargs={
+                        "_session": Database.get_session(),
+                        "task_type": TaskType.ACTIVITY,
+                    },
+                )

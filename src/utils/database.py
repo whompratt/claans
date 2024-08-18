@@ -1,7 +1,6 @@
-from datetime import date, timedelta
-from math import floor
+from datetime import date
 from pathlib import Path
-from typing import Dict, List, Optional, Type
+from typing import Optional
 
 import streamlit as st
 import toml
@@ -13,12 +12,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from src.models.base import Base
 from src.models.dice import Dice
-from src.models.record import Record
-from src.models.season import Season
-from src.models.task import Task, TaskType
-from src.models.user import User
-from src.utils.logger import LOGGER
-from src.utils.timer import timer
+from src.models.task import TaskType
 
 
 class Database:
@@ -56,149 +50,9 @@ class Database:
 
         # TODO: Where the hell should this go?!
         Base.metadata.create_all(bind=engine)
-        maker = sessionmaker(bind=engine)
+        maker = sessionmaker(bind=engine, expire_on_commit=False)
 
         return maker()
-
-    @classmethod
-    @timer
-    @st.cache_data(ttl=3600, hash_funcs={Type[Base]: lambda model: model.__name__})
-    def get_rows(
-        cls,
-        _session: Session,
-        model: Type[Base],
-        filter: Optional[Dict[str, str]] = None,
-    ) -> List[Type[Base]]:
-        """Return a :class:`List[sqlalchemy.engine.Row]` models that match the input query.
-
-        :example: Filter can be formatted as follows:
-
-        .. code-block:: python
-            filter: dict = {
-                "name": "John Doe"
-            }
-
-        .. code-block:: python
-            filter: dict = {
-                "claan": Claans.EARTH_STRIDERS
-            }
-
-
-        :param model: The model to return, must inherit :class:`models.Base`.
-
-        :param filter: An optional :class:`dict` defining the filter, where keys are :class:`str` column names and values are the value the key should match.
-
-            .. note:: If no filter is provided, all rows are returned.
-
-        :return: List of :class:`sqlalchemy.engine.Row` models that matched the query filter.
-        """
-        query = select(model)
-        if filter is not None:
-            for k, v in filter.items():
-                query = query.where(getattr(model, k) == v)
-
-        result = _session.execute(query).scalars().all()
-        return result
-
-    @classmethod
-    @timer
-    @st.cache_data(ttl=3600)
-    def get_active_quests(cls, _session: Session) -> List[Task]:
-        session = cls.get_session() if _session is None else _session
-        query = (
-            select(Task)
-            .where(Task.active)
-            .where(Task.task_type == TaskType.QUEST)
-            .order_by(Task.dice.asc())
-        )
-        result = session.scalars(query).all()
-        session.expunge_all()
-        return result
-
-    @classmethod
-    @timer
-    @st.cache_data(ttl=3600)
-    def get_active_activities(cls, _session: Session) -> List[Task]:
-        session = cls.get_session() if _session is None else _session
-        query = (
-            select(Task)
-            .where(Task.active)
-            .where(Task.task_type == TaskType.ACTIVITY)
-            .order_by(Task.dice.asc())
-        )
-        result = session.scalars(query).all()
-        session.expunge_all()
-        return result
-
-    @classmethod
-    @timer
-    @st.cache_data(ttl=3600)
-    def get_fortnight(
-        cls,
-        _session: Session,
-        timestamp: Optional[date] = None,
-    ) -> int:
-        """Returns the integer representation of the current fortnight for the active season.
-
-        :param date: An optional instance of :class:`datetime.date`, otherwise today will be used.
-        :param engine: An optional instance of :class:`sqlalchemy.engine.base.Engine`.
-            .. note:: If no engine is provided, :meth:get_database_engine will be called with default parameters.
-        :return: :class:`int` representation of current fortnight for this season, indexed to zero.
-        """
-        session = cls.get_session() if _session is None else _session
-        if timestamp is None:
-            timestamp = date.today()
-
-        season_start: date = session.execute(
-            select(func.max(Season.start_date))
-        ).scalar_one()
-
-        fortnights = floor((timestamp - season_start).days / 14)
-        return fortnights
-
-    @classmethod
-    @timer
-    def submit_record(cls, _session: Session, task: Task, user: User) -> bool:
-        if task.dice == Dice.D12:
-            # Check fortnight
-            fortnight = Database.get_fortnight(
-                timestamp=date.today(), _session=_session
-            )
-            query = select(func.max(Season.start_date))
-            season_start: date = _session.execute(query).scalar_one()
-            fortnight_start = season_start + timedelta(weeks=(fortnight * 2))
-            query = (
-                select(func.count())
-                .select_from(Record)
-                .where(
-                    Record.user_id == user.id,
-                    Record.task_id == task.id,
-                    Record.timestamp >= fortnight_start,
-                )
-            )
-            result = _session.execute(query).scalar_one_or_none()
-        else:
-            # Check day
-            query = (
-                select(func.count())
-                .select_from(Record)
-                .where(
-                    Record.user_id == user.id,
-                    Record.task_id == task.id,
-                    Record.timestamp >= date.today(),
-                )
-            )
-            result = _session.execute(query).scalar_one_or_none()
-
-        if result is not None:
-            LOGGER.warning(
-                f"Daily/Fortnight check failed, result is not None: {result}"
-            )
-            return False
-
-        record = Record(task=task, user=user, claan=user.claan, dice=task.dice)
-        _session.add(record)
-        return True
 
 
 def initialise() -> None:
