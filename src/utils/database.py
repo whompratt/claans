@@ -153,8 +153,8 @@ class Database:
             select(func.max(Season.start_date))
         ).scalar_one()
 
-        weeks = floor((timestamp - season_start).days / 7)
-        weeks = floor(weeks / 2)
+        fortnights = floor((timestamp - season_start).days / 14)
+        return fortnights
 
     @classmethod
     @timer
@@ -177,7 +177,6 @@ class Database:
                 )
             )
             result = _session.execute(query).scalar_one_or_none()
-            pass
         else:
             # Check day
             query = (
