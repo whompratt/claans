@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from math import floor
-from typing import List, Optional, Tuple
+from typing import List, Optional
 
 import streamlit as st
 from sqlalchemy import func, select
@@ -34,6 +34,46 @@ def get_scores(_session: Session) -> List[Record]:
         scores[row.claan] = row.score
 
     return scores
+
+
+@timer
+@st.cache_data(ttl=600)
+def get_claan_data(_session: Session, claan: Claan):
+    """Returns some stats about the given Claan.
+
+    Return is a dict containing some data about the given claan, such as total score,
+    delta score this fortnight, total quests submitted, total activities submittied.
+    """
+    season_start = get_season_start(_session=_session)
+    fortnight_start = get_fortnight_start(_session=_session)
+
+    query_score = select(func.sum(Record.score)).where(Record.claan == claan)
+    score_season = _session.execute(
+        query_score.where(Record.timestamp >= season_start)
+    ).scalar_one_or_none()
+    score_fortnight = _session.execute(
+        query_score.where(Record.timestamp >= fortnight_start)
+    ).scalar_one_or_none()
+
+    query_count = (
+        select(func.count())
+        .select_from(Record)
+        .join(Record.task)
+        .where(Record.claan == claan)
+    )
+    count_quest = _session.execute(
+        query_count.where(Task.task_type == TaskType.QUEST)
+    ).scalar_one_or_none()
+    count_activity = _session.execute(
+        query_count.where(Task.task_type == TaskType.ACTIVITY)
+    ).scalar_one_or_none()
+
+    return {
+        "score_season": score_season or 0,
+        "score_fortnight": score_fortnight or 0,
+        "count_quest": count_quest or 0,
+        "count_activity": count_activity or 0,
+    }
 
 
 @timer
@@ -157,23 +197,59 @@ def set_active_task(_session: Session, task_type: TaskType) -> None:
     )
 
 
+@timer
+@st.cache_data(ttl=timedelta(weeks=2))
+def get_season_start(_session: Session) -> date:
+    query = select(func.max(Season.start_date))
+    result = _session.execute(query).scalar_one()
+
+    return result
+
+
+# TODO: Docstring
+@timer
+@st.cache_data(ttl=timedelta(days=1))
 def get_fortnight_number(
-    _session: Session, timestamp: Optional[date] = None
-) -> Tuple[date, int]:
+    _session: Session,
+    timestamp: Optional[date] = None,
+    season_start: Optional[date] = None,
+) -> int:
     """Returns the integer representation of the current fortnight for the active season.
 
-    :param date: An optional instance of :class:`datetime.date`, otherwise today will be used.
-    :param engine: An optional instance of :class:`sqlalchemy.engine.base.Engine`.
+    :param _session: An optional instance of :class:`sqlalchemy.engine.base.Engine`.
+    :param timestamp: An optional instance of :class:`datetime.date`, otherwise today will be used.
         .. note:: If no engine is provided, :meth:get_database_engine will be called with default parameters.
     :return: :class:`Tuple[date, int]` representation of the start date of the current season, and the number for current fortnight for this season, indexed to zero.
     """
     if timestamp is None:
         timestamp = date.today()
 
-    season_start = _session.execute(select(func.max(Season.start_date))).scalar_one()
+    if season_start is None:
+        season_start = get_season_start(_session=_session)
 
-    fortnights = floor((timestamp - season_start).days / 14)
-    return (season_start, fortnights)
+    fortnight_number = floor((timestamp - season_start).days / 14)
+    return fortnight_number
+
+
+@st.cache_data(ttl=timedelta(days=1))
+def get_fortnight_start(
+    _session: Session,
+    timestamp: Optional[date] = None,
+    season_start: Optional[date] = None,
+    fortnight_number: Optional[int] = None,
+) -> date:
+    if timestamp is None:
+        timestamp = date.today()
+    if season_start is None:
+        season_start = get_season_start(_session=_session)
+    if fortnight_number is None:
+        fortnight_number = get_fortnight_number(
+            _session=_session, timestamp=timestamp, season_start=season_start
+        )
+
+    fortnight_start = season_start + timedelta(weeks=(fortnight_number * 2))
+
+    return fortnight_start
 
 
 @timer
@@ -200,9 +276,8 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
     # Fortnightly quest
     result = None
     if task.dice == Dice.D12:
-        season_start, fortnight_number = get_fortnight_number(
-            _session=_session,
-        )
+        season_start = get_season_start(_session=_session)
+        fortnight_number = get_fortnight_number(_session=_session)
         query = (
             select(func.count())
             .select_from(Record)
@@ -239,6 +314,13 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
     LOGGER.info("Reloading `scores`")
     get_scores.clear()
     st.session_state["scores"] = get_scores(_session=_session)
+
+    if f"data_{user.claan.name}" in st.session_state:
+        LOGGER.info("Reloading `data`")
+        get_claan_data.clear(claan=user.claan)
+        st.session_state[f"data_{user.claan.name}"] = get_claan_data(
+            _session=_session, claan=user.claan
+        )
 
     return record
 

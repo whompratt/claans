@@ -33,6 +33,10 @@ class ClaanPage:
                 )
             if "scores" not in st.session_state:
                 st.session_state["scores"] = data.get_scores(_session=session)
+            if f"data_{self.claan.name}" not in st.session_state:
+                st.session_state[f"data_{self.claan.name}"] = data.get_claan_data(
+                    _session=session, claan=self.claan
+                )
             session.expunge_all()
 
         self.build_page()
@@ -113,15 +117,22 @@ class ClaanPage:
                 col_1, col_2, col_3, col_4 = st.columns(4)
                 col_1.metric(
                     label="Overall Score",
-                    value=next(
-                        score
-                        for claan, score in st.session_state["scores"].items()
-                        if claan == self.claan
-                    ),
+                    value=st.session_state[f"data_{self.claan.name}"]["score_season"],
                 )
-                col_2.metric("Fortnight Score", 0)
-                col_3.metric("Tasks Completed", 0)
-                col_4.metric("Activities Completed", 0)
+                col_2.metric(
+                    "Fortnight Score",
+                    value=st.session_state[f"data_{self.claan.name}"][
+                        "score_fortnight"
+                    ],
+                )
+                col_3.metric(
+                    "Tasks Completed",
+                    value=st.session_state[f"data_{self.claan.name}"]["count_quest"],
+                )
+                col_4.metric(
+                    "Activities Completed",
+                    value=st.session_state[f"data_{self.claan.name}"]["count_activity"],
+                )
             with header_right:
                 claan_img = pathlib.Path(
                     f"./assets/images/{self.claan.name.lower()}_hex.png"
