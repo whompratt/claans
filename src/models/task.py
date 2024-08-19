@@ -23,8 +23,8 @@ class Task(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     description: Mapped[str] = mapped_column(nullable=False)
-    task_type: Mapped[TaskType] = mapped_column(nullable=False)
-    dice: Mapped[Dice] = mapped_column(nullable=False)
+    task_type: Mapped[TaskType] = mapped_column(nullable=False, index=True)
+    dice: Mapped[Dice] = mapped_column(nullable=False, index=True)
     ephemeral: Mapped[bool] = mapped_column(default=False)
     active: Mapped[bool] = mapped_column(default=False)
     last: Mapped[date] = mapped_column(default=datetime.min)

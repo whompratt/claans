@@ -30,8 +30,8 @@ class Record(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     score: Mapped[int] = mapped_column(nullable=False)
-    timestamp: Mapped[date] = mapped_column(nullable=False)
-    claan: Mapped[Claan] = mapped_column(nullable=False)
+    timestamp: Mapped[date] = mapped_column(nullable=False, index=True)
+    claan: Mapped[Claan] = mapped_column(nullable=False, index=True)
 
     task_id: Mapped[int] = mapped_column(
         ForeignKey("task.id", ondelete="CASCADE"), nullable=False
