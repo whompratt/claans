@@ -176,12 +176,14 @@ def set_active_task(_session: Session, task_type: TaskType) -> None:
         )
         .limit(1)
     )
+    LOGGER.warning(st.session_state[f"set_active_{task_type.value}_selection"].id)
     task_current = _session.execute(query).scalar_one_or_none()
     task_new = _session.get(
         Task, st.session_state[f"set_active_{task_type.value}_selection"].id
     )
 
-    task_current.active = False
+    if task_current is not None:
+        task_current.active = False
     task_new.active = True
 
     _session.commit()
