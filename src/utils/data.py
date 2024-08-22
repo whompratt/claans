@@ -79,7 +79,7 @@ def get_claan_data(_session: Session, claan: Claan):
 @timer
 @st.cache_data()
 def get_tasks(_session: Session) -> List[Task]:
-    query = select(Task)
+    query = select(Task).order_by(Task.dice.asc()).order_by(Task.task_type.desc())
     result = _session.execute(query).scalars().all()
 
     return result

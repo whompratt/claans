@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date
 from enum import Enum
 from typing import TYPE_CHECKING, List
 
@@ -27,7 +27,7 @@ class Task(Base):
     dice: Mapped[Dice] = mapped_column(nullable=False, index=True)
     ephemeral: Mapped[bool] = mapped_column(default=False)
     active: Mapped[bool] = mapped_column(default=False)
-    last: Mapped[date] = mapped_column(default=datetime.min)
+    last: Mapped[date] = mapped_column(nullable=True)
 
     records: Mapped[List["Record"]] = relationship(
         back_populates="task", cascade="all, delete", passive_deletes=True
@@ -40,3 +40,9 @@ class Task(Base):
         self.task_type = task_type
         self.dice = dice
         self.ephemeral = ephemeral
+
+    def __repr__(self):
+        return f"Task({vars(self)})"
+
+    def __str__(self):
+        return f"Task:\ndescription: {self.description}\ntask_type: {self.task_type}\ndice: {self.dice}\nactive: {self.active}\nephemeral: {self.ephemeral}\nlast: {self.last}"

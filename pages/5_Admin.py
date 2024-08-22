@@ -18,6 +18,12 @@ def load_data():
             )
 
 
+def refresh_data():
+    """Hard refresh of all data, including clearing data cache."""
+    st.cache_data.clear()
+    load_data()
+
+
 def check_password():
     def password_entered():
         if st.session_state["admin_password"] == st.secrets["passwords"]["admin"]:
@@ -263,6 +269,7 @@ def init_page() -> None:
             key="button_init_data",
             on_click=initialise,
         )
+        st.button(label="Refresh Data", key="button_refresh_data", on_click=load_data)
 
         user_management()
         task_management()

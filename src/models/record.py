@@ -53,3 +53,6 @@ class Record(Base):
 
         self.task_id = task if isinstance(task, int) else task.id
         self.user_id = user if isinstance(user, int) else user.id
+
+    def __str__(self):
+        return f"Record for user {self.user_id} against task {self.task_id}, in claan {self.claan} with score {self.score}"
