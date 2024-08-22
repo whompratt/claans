@@ -22,6 +22,12 @@ def init_page() -> None:
     with Database.get_session() as session:
         if "scores" not in st.session_state:
             st.session_state["scores"] = data.get_scores(_session=session)
+        for claan in Claan:
+            if f"data_{claan.name}" not in st.session_state:
+                st.session_state[f"data_{claan.name}"] = data.get_claan_data(
+                    _session=session, claan=claan
+                )
+        session.expunge_all()
 
     # --- HEADER --- #
     with st.container():
@@ -61,7 +67,8 @@ def init_page() -> None:
 
                 st.metric(
                     label=claan.value,
-                    value=st.session_state["scores"][claan],
+                    value=st.session_state[f"data_{claan.name}"]["score_season"],
+                    delta=st.session_state[f"data_{claan.name}"]["score_fortnight"],
                 )
     # --- SCORES --- #
 
