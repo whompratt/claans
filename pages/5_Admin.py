@@ -269,7 +269,9 @@ def init_page() -> None:
             key="button_init_data",
             on_click=initialise,
         )
-        st.button(label="Refresh Data", key="button_refresh_data", on_click=load_data)
+        st.button(
+            label="Refresh Data", key="button_refresh_data", on_click=refresh_data
+        )
 
         user_management()
         task_management()
