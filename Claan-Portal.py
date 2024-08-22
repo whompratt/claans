@@ -10,6 +10,15 @@ from src.utils.database import Database
 def init_page() -> None:
     st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
 
+    st.markdown(
+        """<style>
+        .st-emotion-cache-15zws4i, .st-emotion-cache-1j7f08p {
+            color: #F5F5F5
+        }
+        </style>""",
+        unsafe_allow_html=True,
+    )
+
     with Database.get_session() as session:
         if "scores" not in st.session_state:
             st.session_state["scores"] = data.get_scores(_session=session)

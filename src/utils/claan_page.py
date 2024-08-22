@@ -18,6 +18,15 @@ class ClaanPage:
             layout="wide",
         )
 
+        st.markdown(
+            """<style>
+            .st-emotion-cache-15zws4i, .st-emotion-cache-1j7f08p {
+                color: #F5F5F5
+            }
+            </style>""",
+            unsafe_allow_html=True,
+        )
+
         with Database.get_session() as session:
             if "active_quest" not in st.session_state:
                 st.session_state["active_quest"] = data.get_active_tasks(
