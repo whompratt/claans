@@ -1,5 +1,6 @@
 import pathlib
 
+import pandas as pd
 import streamlit as st
 
 from src.models.claan import Claan
@@ -45,6 +46,10 @@ class ClaanPage:
             if f"data_{self.claan.name}" not in st.session_state:
                 st.session_state[f"data_{self.claan.name}"] = data.get_claan_data(
                     _session=session, claan=self.claan
+                )
+            if f"historical_{self.claan.name}" not in st.session_state:
+                st.session_state[f"historical_{self.claan.name}"] = (
+                    data.get_historical_data(_session=session, claan=self.claan)
                 )
             session.expunge_all()
 
@@ -178,3 +183,29 @@ class ClaanPage:
                         "task_type": TaskType.ACTIVITY,
                     },
                 )
+
+        with st.expander("Record History"):
+            st.button(
+                label="Refresh",
+                key="history_button_refresh",
+                help="Click to refresh historical data",
+                on_click=data.get_historical_data,
+                kwargs={
+                    "_sessioN": Database.get_session(),
+                    "claan": self.claan,
+                },
+            )
+            df_historical = pd.DataFrame.from_records(
+                columns=("Name", "Task", "Dice", "Score", "Timestamp"),
+                data=st.session_state[f"historical_{self.claan.name}"],
+            )
+            if "_sa_instance_state" in df_historical.columns:
+                df_historical.drop("_sa_instance_state", inplace=True, axis=1)
+            if "claan" in df_historical.columns:
+                df_historical["claan"] = df_historical["claan"].apply(lambda x: x.value)
+
+            st.dataframe(
+                data=df_historical,
+                use_container_width=True,
+                hide_index=True,
+            )
