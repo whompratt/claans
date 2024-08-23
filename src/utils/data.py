@@ -313,6 +313,8 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
     _session.add(record)
     _session.commit()
 
+    st.success(f"Task logged! Roll: {record.score}")
+
     LOGGER.info("Reloading `scores`")
     get_scores.clear()
     st.session_state["scores"] = get_scores(_session=_session)
