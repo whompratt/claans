@@ -185,24 +185,26 @@ class ClaanPage:
                 )
 
         with st.expander("Record History"):
-            st.button(
+            if st.button(
                 label="Refresh",
                 key="history_button_refresh",
                 help="Click to refresh historical data",
-                on_click=data.get_historical_data,
-                kwargs={
-                    "_sessioN": Database.get_session(),
-                    "claan": self.claan,
-                },
-            )
+            ):
+                data.get_historical_data.clear(claan=self.claan)
+                st.session_state[f"historical_{self.claan.name}"] = (
+                    data.get_historical_data(
+                        _session=Database.get_session(), claan=self.claan
+                    )
+                )
+
             df_historical = pd.DataFrame.from_records(
                 columns=("Name", "Task", "Dice", "Score", "Timestamp"),
                 data=st.session_state[f"historical_{self.claan.name}"],
             )
             if "_sa_instance_state" in df_historical.columns:
                 df_historical.drop("_sa_instance_state", inplace=True, axis=1)
-            if "claan" in df_historical.columns:
-                df_historical["claan"] = df_historical["claan"].apply(lambda x: x.value)
+            if "Dice" in df_historical.columns:
+                df_historical["Dice"] = df_historical["Dice"].apply(lambda x: x.name)
 
             st.dataframe(
                 data=df_historical,
