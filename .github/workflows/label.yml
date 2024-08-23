@@ -7,13 +7,13 @@ on:
       
 jobs:
   label:
+    if: join(github.event.issue.labels) == ''
     runs-on: ubuntu-latest
     permissions:
       issues: write
     steps:
-      - run: gh issue edit "$NUMBER" --add-label "$LABELS"
+      - run: gh issue edit "$NUMBER" --add-label triage
         env:
           GH_TOKEN: ${{ secrets.CLAANS_ISSUES_WRITE }}
           GH_REPO: ${{ github.repository }}
           NUMBER: ${{ github.event.issue.number }}
-          LABELS: needs_triage
