@@ -77,36 +77,6 @@ class ClaanPage:
         else:
             return True
 
-    def submit_quest(self):
-        with Database.get_session() as session:
-            task = st.session_state["quest_selection"]
-            user = st.session_state["quest_user"]
-            result = Database.submit_record(_session=session, task=task, user=user)
-            if not result:
-                st.warning(
-                    "Error submitting quest, it looks like you've already submitted this quest..."
-                )
-            else:
-                st.success("Quest submitted!")
-                session.commit()
-                data.get_scores.clear()
-                st.session_state["scores"] = data.get_scores(_session=session)
-
-    def submit_activity(self):
-        with Database.get_session() as session:
-            task = st.session_state["activity_selection"]
-            user = st.session_state["activity_user"]
-            result = Database.submit_record(_session=session, task=task, user=user)
-            if not result:
-                st.warning(
-                    "Error submitting activity, it looks like you've already submitted this activity..."
-                )
-            else:
-                st.success("Activity submitted!")
-                session.commit()
-                data.get_scores.clear()
-                st.session_state["scores"] = data.get_scores(_session=session)
-
     def build_page(self):
         if not self.check_password():
             return
