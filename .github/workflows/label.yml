@@ -15,5 +15,5 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.CLAANS_ISSUES_WRITE }}
           GH_REPO: ${{ github.repository }}
-          NUMBER: ${{ github.event.issue.numer }}
+          NUMBER: ${{ github.event.issue.number }}
           LABELS: needs_triage
