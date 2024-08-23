@@ -77,6 +77,27 @@ def get_claan_data(_session: Session, claan: Claan):
 
 
 @timer
+# @st.cache_data
+def get_historical_data(_session: Session, claan: Claan) -> None:
+    season_start = get_season_start(_session=_session)
+
+    query = (
+        select(User.name, Task.description, Task.dice, Record.score, Record.timestamp)
+        .join(Record.user)
+        .join(Record.task)
+        .where(Record.claan == claan)
+        .where(Record.timestamp >= season_start)
+        .order_by(Record.timestamp.desc())
+    )
+    records = _session.execute(query).all()
+
+    for record in records:
+        LOGGER.info(record)
+
+    return records
+
+
+@timer
 @st.cache_data()
 def get_tasks(_session: Session) -> List[Task]:
     query = select(Task).order_by(Task.dice.asc()).order_by(Task.task_type.desc())
