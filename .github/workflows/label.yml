@@ -1,0 +1,19 @@
+name: Label New Issues
+on:
+  issues:
+    types:
+      - opened
+      - reopened
+      
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - run: gh issue edit "$NUMBER" --add-label "$LABELS"
+        env:
+          GH_TOKEN: ${{ secrets.CLAANS_ISSUES_WRITE }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.numer }}
+          LABELS: needs_triage
