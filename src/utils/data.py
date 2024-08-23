@@ -77,7 +77,7 @@ def get_claan_data(_session: Session, claan: Claan):
 
 
 @timer
-# @st.cache_data
+@st.cache_data
 def get_historical_data(_session: Session, claan: Claan) -> None:
     season_start = get_season_start(_session=_session)
 
@@ -90,9 +90,6 @@ def get_historical_data(_session: Session, claan: Claan) -> None:
         .order_by(Record.timestamp.desc())
     )
     records = _session.execute(query).all()
-
-    for record in records:
-        LOGGER.info(record)
 
     return records
 
