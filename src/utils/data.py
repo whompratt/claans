@@ -284,18 +284,19 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
         )
         return
 
+    record_claan = st.session_state[f"{task_type.value}_user"].claan
+    record_dice = st.session_state[f"{task_type.value}_selection"].dice
+
     record = Record(
         task=st.session_state[f"{task_type.value}_selection"],
         user=st.session_state[f"{task_type.value}_user"],
-        claan=st.session_state[f"{task_type.value}_user"].claan,
-        dice=st.session_state[f"{task_type.value}_selection"].dice,
+        claan=record_claan,
+        dice=record_dice,
     )
-    user = _session.get(User, record.user_id)
-    task = _session.get(Task, record.task_id)
 
     # Fortnightly quest
     result = None
-    if task.dice == Dice.D12:
+    if record_dice == Dice.D12:
         season_start = get_season_start(_session=_session)
         fortnight_number = get_fortnight_number(_session=_session)
         query = (
@@ -322,7 +323,6 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
         result = _session.execute(query).scalar_one_or_none()
 
     if result >= 1:
-        LOGGER.info(f"User {user.name} attempted to submit a record too frequently")
         st.warning(
             "Unable to submit record, looks like you've submitted this task too recently!"
         )
@@ -337,11 +337,11 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
     get_scores.clear()
     st.session_state["scores"] = get_scores(_session=_session)
 
-    if f"data_{user.claan.name}" in st.session_state:
+    if f"data_{record_claan.name}" in st.session_state:
         LOGGER.info("Reloading `data`")
-        get_claan_data.clear(claan=user.claan)
-        st.session_state[f"data_{user.claan.name}"] = get_claan_data(
-            _session=_session, claan=user.claan
+        get_claan_data.clear(claan=record_claan)
+        st.session_state[f"data_{record_claan.name}"] = get_claan_data(
+            _session=_session, claan=record_claan
         )
 
     return record
