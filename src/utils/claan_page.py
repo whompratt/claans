@@ -144,7 +144,7 @@ class ClaanPage:
                 st.radio(
                     label="Quests",
                     options=st.session_state["active_quest"],
-                    format_func=lambda task: task.description,
+                    format_func=lambda task: f"{task.dice.name}: {task.description}",
                     key="quest_selection",
                 )
 
@@ -171,7 +171,7 @@ class ClaanPage:
                 st.radio(
                     label="Activities",
                     options=st.session_state["active_activity"],
-                    format_func=lambda task: task.description,
+                    format_func=lambda task: f"{task.dice.name}: {task.description}",
                     key="activity_selection",
                 )
 
