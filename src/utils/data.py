@@ -252,6 +252,7 @@ def get_fortnight_number(
 
 
 @st.cache_data(ttl=timedelta(days=1))
+@timer
 def get_fortnight_start(
     _session: Session,
     timestamp: Optional[date] = None,
