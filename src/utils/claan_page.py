@@ -21,7 +21,7 @@ class ClaanPage:
 
         st.markdown(
             """<style>
-            .st-emotion-cache-15zws4i, .st-emotion-cache-1j7f08p {
+            .st-emotion-cache-15zws4i, .st-emotion-cache-1j7f08p, .st-emotion-cache-1j34uyg, .st-bm {
                 color: #F5F5F5
             }
             </style>""",
