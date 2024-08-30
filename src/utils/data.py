@@ -19,12 +19,11 @@ from src.utils.timer import timer
 @timer
 @st.cache_data(ttl=600)
 def get_scores(_session: Session) -> List[Record]:
-    query = select(func.max(Season.start_date))
-    season: date = _session.scalar(query)
+    season_start = get_season_start(_session=_session)
 
     query = (
         select(Record.claan, func.sum(Record.score).label("score"))
-        .where(Record.timestamp >= season)
+        .where(Record.timestamp >= season_start)
         .group_by("claan")
     )
     result = _session.execute(query).all()
