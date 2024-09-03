@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from math import floor
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import streamlit as st
 from sqlalchemy import func, select
@@ -270,6 +270,29 @@ def get_fortnight_start(
     fortnight_start = season_start + timedelta(weeks=(fortnight_number * 2))
 
     return fortnight_start
+
+
+@st.cache_data(ttl=timedelta(days=1))
+@timer
+def get_fortnight_info(_session: Session) -> Dict[str, int | date]:
+    """Returns a dict containing fortnight information.
+
+    Dict contains fortnight number, start date, end date.
+    """
+    season_start = get_season_start(_session=_session)
+    fortnight_number = get_fortnight_number(
+        _session=_session, season_start=season_start
+    )
+    start_date = get_fortnight_start(
+        _session=_session, season_start=season_start, fortnight_number=fortnight_number
+    )
+    end_date = start_date + timedelta(weeks=2)
+
+    return {
+        "fortnight_number": fortnight_number,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
 
 
 @timer
