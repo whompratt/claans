@@ -21,7 +21,7 @@ class ClaanPage:
 
         st.markdown(
             """<style>
-            .st-emotion-cache-15zws4i, .st-emotion-cache-1j7f08p {
+            .st-emotion-cache-15zws4i, .st-emotion-cache-1j7f08p, .st-emotion-cache-1j34uyg, .st-bm {
                 color: #F5F5F5
             }
             </style>""",
@@ -50,6 +50,10 @@ class ClaanPage:
             if f"historical_{self.claan.name}" not in st.session_state:
                 st.session_state[f"historical_{self.claan.name}"] = (
                     data.get_historical_data(_session=session, claan=self.claan)
+                )
+            if "fortnight_info" not in st.session_state:
+                st.session_state["fortnight_info"] = data.get_fortnight_info(
+                    _session=session
                 )
             session.expunge_all()
 
@@ -99,20 +103,41 @@ class ClaanPage:
                 st.subheader("Fortnight Breakdown!")
 
                 col_1, col_2, col_3, col_4 = st.columns(4)
-                col_1.metric(
-                    label="Overall Score",
-                    value=st.session_state[f"data_{self.claan.name}"]["score_season"],
-                )
-                col_2.metric(
-                    "Fortnight Score",
-                    value=st.session_state[f"data_{self.claan.name}"][
-                        "score_fortnight"
-                    ],
-                )
-                col_3.metric(
-                    "Tasks Completed",
-                    value=st.session_state[f"data_{self.claan.name}"]["count_quest"],
-                )
+                with col_1:
+                    st.metric(
+                        label="Overall Score",
+                        value=st.session_state[f"data_{self.claan.name}"][
+                            "score_season"
+                        ],
+                    )
+                    st.metric(
+                        label="Fortnight Number",
+                        value=st.session_state["fortnight_info"].get(
+                            "fortnight_number"
+                        ),
+                    )
+                with col_2:
+                    st.metric(
+                        "Fortnight Score",
+                        value=st.session_state[f"data_{self.claan.name}"][
+                            "score_fortnight"
+                        ],
+                    )
+                    st.metric(
+                        label="Started",
+                        value=str(st.session_state["fortnight_info"].get("start_date")),
+                    )
+                with col_3:
+                    st.metric(
+                        "Tasks Completed",
+                        value=st.session_state[f"data_{self.claan.name}"][
+                            "count_quest"
+                        ],
+                    )
+                    st.metric(
+                        label="Ends",
+                        value=str(st.session_state["fortnight_info"].get("end_date")),
+                    )
                 col_4.metric(
                     "Activities Completed",
                     value=st.session_state[f"data_{self.claan.name}"]["count_activity"],
@@ -144,7 +169,7 @@ class ClaanPage:
                 st.radio(
                     label="Quests",
                     options=st.session_state["active_quest"],
-                    format_func=lambda task: task.description,
+                    format_func=lambda task: f"{task.dice.name}: {task.description}",
                     key="quest_selection",
                 )
 
@@ -171,7 +196,7 @@ class ClaanPage:
                 st.radio(
                     label="Activities",
                     options=st.session_state["active_activity"],
-                    format_func=lambda task: task.description,
+                    format_func=lambda task: f"{task.dice.name}: {task.description}",
                     key="activity_selection",
                 )
 

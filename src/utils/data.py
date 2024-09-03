@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 from math import floor
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 import streamlit as st
 from sqlalchemy import func, select
@@ -19,12 +19,11 @@ from src.utils.timer import timer
 @timer
 @st.cache_data(ttl=600)
 def get_scores(_session: Session) -> List[Record]:
-    query = select(func.max(Season.start_date))
-    season: date = _session.scalar(query)
+    season_start = get_season_start(_session=_session)
 
     query = (
         select(Record.claan, func.sum(Record.score).label("score"))
-        .where(Record.timestamp >= season)
+        .where(Record.timestamp >= season_start)
         .group_by("claan")
     )
     result = _session.execute(query).all()
@@ -252,6 +251,7 @@ def get_fortnight_number(
 
 
 @st.cache_data(ttl=timedelta(days=1))
+@timer
 def get_fortnight_start(
     _session: Session,
     timestamp: Optional[date] = None,
@@ -272,6 +272,29 @@ def get_fortnight_start(
     return fortnight_start
 
 
+@st.cache_data(ttl=timedelta(days=1))
+@timer
+def get_fortnight_info(_session: Session) -> Dict[str, int | date]:
+    """Returns a dict containing fortnight information.
+
+    Dict contains fortnight number, start date, end date.
+    """
+    season_start = get_season_start(_session=_session)
+    fortnight_number = get_fortnight_number(
+        _session=_session, season_start=season_start
+    )
+    start_date = get_fortnight_start(
+        _session=_session, season_start=season_start, fortnight_number=fortnight_number
+    )
+    end_date = start_date + timedelta(weeks=2)
+
+    return {
+        "fortnight_number": fortnight_number,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+
+
 @timer
 def submit_record(_session: Session, task_type: TaskType) -> Record:
     if st.session_state.keys() < {
@@ -284,18 +307,19 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
         )
         return
 
+    record_claan = st.session_state[f"{task_type.value}_user"].claan
+    record_dice = st.session_state[f"{task_type.value}_selection"].dice
+
     record = Record(
         task=st.session_state[f"{task_type.value}_selection"],
         user=st.session_state[f"{task_type.value}_user"],
-        claan=st.session_state[f"{task_type.value}_user"].claan,
-        dice=st.session_state[f"{task_type.value}_selection"].dice,
+        claan=record_claan,
+        dice=record_dice,
     )
-    user = _session.get(User, record.user_id)
-    task = _session.get(Task, record.task_id)
 
     # Fortnightly quest
     result = None
-    if task.dice == Dice.D12:
+    if record_dice == Dice.D12:
         season_start = get_season_start(_session=_session)
         fortnight_number = get_fortnight_number(_session=_session)
         query = (
@@ -322,7 +346,6 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
         result = _session.execute(query).scalar_one_or_none()
 
     if result >= 1:
-        LOGGER.info(f"User {user.name} attempted to submit a record too frequently")
         st.warning(
             "Unable to submit record, looks like you've submitted this task too recently!"
         )
@@ -337,11 +360,11 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
     get_scores.clear()
     st.session_state["scores"] = get_scores(_session=_session)
 
-    if f"data_{user.claan.name}" in st.session_state:
+    if f"data_{record_claan.name}" in st.session_state:
         LOGGER.info("Reloading `data`")
-        get_claan_data.clear(claan=user.claan)
-        st.session_state[f"data_{user.claan.name}"] = get_claan_data(
-            _session=_session, claan=user.claan
+        get_claan_data.clear(claan=record_claan)
+        st.session_state[f"data_{record_claan.name}"] = get_claan_data(
+            _session=_session, claan=record_claan
         )
 
     return record

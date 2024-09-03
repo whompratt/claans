@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base
@@ -30,8 +30,8 @@ class Record(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     score: Mapped[int] = mapped_column(nullable=False)
-    timestamp: Mapped[date] = mapped_column(nullable=False, index=True)
-    claan: Mapped[Claan] = mapped_column(nullable=False, index=True)
+    timestamp: Mapped[date] = mapped_column(nullable=False)
+    claan: Mapped[Claan] = mapped_column(nullable=False)
 
     task_id: Mapped[int] = mapped_column(
         ForeignKey("task.id", ondelete="CASCADE"), nullable=False
@@ -42,6 +42,18 @@ class Record(Base):
 
     task: Mapped["Task"] = relationship("Task", back_populates="records")
     user: Mapped["User"] = relationship("User", back_populates="records")
+
+    __table_args__ = (
+        Index(
+            "record_user_task_idx",
+            user_id,
+            task_id,
+        ),
+        Index(
+            "record_timestamp_idx",
+            timestamp.desc(),
+        ),
+    )
 
     # TODO: Don't take dice in, read from task instead
     # Basically if task is Task, then dice can be Dice or None
