@@ -450,6 +450,7 @@ def get_hit_list(_session: Session) -> List[Murder]:
         select(Murder)
         .join(users_agent, onclause=Murder.agent_id == users_agent.id)
         .join(users_target, onclause=Murder.target_id == users_target.id)
+        .order_by(users_agent.name.asc())
     )
     result = _session.execute(query, execution_options={"prebuffer_rows": True})
 
@@ -508,28 +509,5 @@ def confirm_kill(_session: Session) -> None:
     _session.add(murder_record)
 
     _session.commit()
-
-    try:
-        get_scores.clear()
-    except Exception:
-        pass
-
-    try:
-        get_claan_data.clear()
-    except Exception:
-        pass
-
-    if "scores" in st.session_state:
-        st.session_state["scores"] = get_scores(_session=_session)
-    for claan in [
-        Claan.EARTH_STRIDERS,
-        Claan.FIRE_DANCERS,
-        Claan.THUNDER_WALKERS,
-        Claan.WAVE_RIDERS,
-    ]:
-        if f"data_{claan.name}" in st.session_state:
-            st.session_state[f"data_{claan.name}"] = get_claan_data(
-                _session=_session, claan=claan
-            )
 
     get_agent_info(_session=_session)
