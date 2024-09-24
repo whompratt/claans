@@ -3,11 +3,12 @@ from math import floor
 from typing import Dict, List, Optional
 
 import streamlit as st
-from sqlalchemy import func, select
-from sqlalchemy.orm import Session
+from sqlalchemy import delete, func, select
+from sqlalchemy.orm import Session, aliased
 
 from src.models.claan import Claan
 from src.models.dice import Dice
+from src.models.murder import Murder
 from src.models.record import Record
 from src.models.season import Season
 from src.models.task import Task, TaskType
@@ -440,3 +441,88 @@ def delete_user(_session: Session) -> None:
         st.session_state[f"users_{target.claan.name}"] = get_claan_users(
             _session=_session, claan=target.claan
         )
+
+
+def get_hit_list(_session: Session) -> List[Murder]:
+    users_agent = aliased(User)
+    users_target = aliased(User)
+    query = (
+        select(Murder)
+        .join(users_agent, onclause=Murder.agent_id == users_agent.id)
+        .join(users_target, onclause=Murder.target_id == users_target.id)
+    )
+    result = _session.execute(query, execution_options={"prebuffer_rows": True})
+
+    return [row[0] for row in result]
+
+
+def get_agent_info(_session: Session) -> None:
+    query = select(Murder).where(
+        Murder.agent_id == st.session_state["murder_agent"].agent_id
+    )
+    result = _session.execute(query).scalar_one()
+
+    st.session_state["agent_info"] = {
+        "agent": {
+            "id": result.agent_id,
+            "user": result.agent,
+        },
+        "target": {
+            "id": result.target_id,
+            "user": result.target,
+        },
+        "task": result.task,
+    }
+
+
+def confirm_kill(_session: Session) -> None:
+    agent_info = st.session_state["agent_info"]
+
+    agent = agent_info["agent"]["user"]
+    target = agent_info["target"]["user"]
+
+    this_row = _session.execute(
+        select(Murder).where(Murder.agent == agent)
+    ).scalar_one()
+    next_row = _session.execute(
+        select(Murder).where(Murder.agent == target)
+    ).scalar_one()
+
+    this_row.target_id = next_row.target_id
+    this_row.target = next_row.target
+    this_row.task = next_row.task
+
+    # Delete target's old assignment
+    _session.execute(delete(Murder).where(Murder.agent == next_row.agent))
+
+    # Submit record for successful kill
+    murder_task_query = select(Task).where(Task.description == "MURDER")
+    murder_task = _session.execute(murder_task_query).scalar_one()
+
+    murder_record = Record(
+        murder_task,
+        agent,
+        agent.claan,
+        Dice.D4,
+    )
+    _session.add(murder_record)
+
+    _session.commit()
+
+    get_scores.clear()
+    get_claan_data.clear()
+
+    if "scores" in st.session_state:
+        st.session_state["scores"] = get_scores(_session=_session)
+    for claan in [
+        Claan.EARTH_STRIDERS,
+        Claan.FIRE_DANCERS,
+        Claan.THUNDER_WALKERS,
+        Claan.WAVE_RIDERS,
+    ]:
+        if f"data_{claan.name}" in st.session_state:
+            st.session_state[f"data_{claan.name}"] = get_claan_data(
+                _session=_session, claan=claan
+            )
+
+    get_agent_info(_session=_session)
