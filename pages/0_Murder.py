@@ -17,8 +17,7 @@ def init_page() -> None:
     )
 
     with Database.get_session() as session:
-        if "hit_list" not in st.session_state:
-            st.session_state["hit_list"] = data.get_hit_list(_session=session)
+        st.session_state["hit_list"] = data.get_hit_list(_session=session)
 
         st.header("There's been a MURDER!")
         st.subheader("AAFest - a bloody affair")
