@@ -509,8 +509,15 @@ def confirm_kill(_session: Session) -> None:
 
     _session.commit()
 
-    get_scores.clear()
-    get_claan_data.clear()
+    try:
+        get_scores.clear()
+    except Exception:
+        pass
+
+    try:
+        get_claan_data.clear()
+    except Exception:
+        pass
 
     if "scores" in st.session_state:
         st.session_state["scores"] = get_scores(_session=_session)
