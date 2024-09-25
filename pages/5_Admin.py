@@ -50,7 +50,7 @@ def check_password():
     return False
 
 
-@st.experimental_fragment
+@st.fragment
 def delete_user_form():
     with st.container(border=True):
         st.subheader("Delete User")
@@ -121,7 +121,7 @@ def user_management() -> None:
             delete_user_form()
 
 
-@st.experimental_fragment
+@st.fragment
 def set_active_quest_form():
     with st.container(border=True):
         st.subheader("Set Active Quest")
@@ -153,7 +153,7 @@ def set_active_quest_form():
             st.rerun()
 
 
-@st.experimental_fragment
+@st.fragment
 def set_active_activity_form():
     with st.container(border=True):
         st.subheader("Set Active Activity")
