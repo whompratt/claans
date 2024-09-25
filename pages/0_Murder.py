@@ -41,6 +41,12 @@ def init_page() -> None:
 
         st.divider()
 
+        with st.container(border=True):
+            st.header("Agents Remaining")
+            st.metric("Count", len(st.session_state["hit_list"]))
+
+        st.divider()
+
         with st.form(key="agent_form", clear_on_submit=False, border=True):
             st.header("Agent Login")
             st.selectbox(

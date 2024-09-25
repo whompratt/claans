@@ -510,4 +510,18 @@ def confirm_kill(_session: Session) -> None:
 
     _session.commit()
 
+    try:
+        get_scores.clear()
+        st.session_state["scores"] = get_scores(_session=_session)
+    except Exception as e:
+        LOGGER.warning(f"Error clearing cache for 'get_scores' - {e}")
+    try:
+        get_claan_data.clear()
+        for claan in Claan:
+            st.session_state[f"data_{claan.name}"] = get_claan_data(
+                _session=_session, claan=claan
+            )
+    except Exception as e:
+        LOGGER.warning(f"Error clearing cache for 'get_claan_data' - {e}")
+
     get_agent_info(_session=_session)
