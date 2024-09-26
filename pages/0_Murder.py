@@ -78,6 +78,8 @@ def init_page() -> None:
                 kwargs={"_session": Database.get_session()},
             ):
                 st.toast("Well done agent. A new target has been assigned to you.")
+                del st.session_state["agent_info"]
+                st.rerun()
             st.write(
                 "If your target isn't present, please alert your handler (Jake) to refresh your assignemnt."
             )
