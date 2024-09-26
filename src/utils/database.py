@@ -150,7 +150,6 @@ def initialise() -> None:
             "Get your target to spell their name or something else backwards, try to convince them they did it wrong",
             "Get your target to talk like they are from Bristol. 'Alright my lovaaaerrr'",
             "Convince your target to do a mindfulness exercise and take a selfie while their eyes are closed",
-            "Challenge your target to a nerf shootout that you must deliberately lose without them knowing",
             "Convince your target to support your great new business idea which uses AI, get them to pitch the idea to Gavi or Terry with you",
         ]
         random.shuffle(tasks)

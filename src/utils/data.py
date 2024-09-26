@@ -447,14 +447,21 @@ def get_hit_list(_session: Session) -> List[Murder]:
     users_agent = aliased(User)
     users_target = aliased(User)
     query = (
-        select(Murder)
+        select(
+            Murder.id,
+            Murder.task,
+            users_agent.id.label("agent_id"),
+            users_agent.name.label("agent_name"),
+            users_target.id.label("target_id"),
+            users_target.name.label("target_name"),
+        )
         .join(users_agent, onclause=Murder.agent_id == users_agent.id)
         .join(users_target, onclause=Murder.target_id == users_target.id)
         .order_by(users_agent.name.asc())
     )
-    result = _session.execute(query, execution_options={"prebuffer_rows": True})
+    result = _session.execute(query).all()
 
-    return [row[0] for row in result]
+    return result
 
 
 def get_agent_info(_session: Session) -> None:
