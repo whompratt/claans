@@ -552,5 +552,6 @@ def cycle_target(_session: Session) -> None:
     this_row.task = next_row.task
 
     _session.execute(delete(Murder).where(Murder.agent == next_row.agent))
+    _session.commit()
 
     get_agent_info(_session=_session)
