@@ -175,14 +175,17 @@ def initialise() -> None:
 
             murder_targets = generate_targets(session=session)
             assignments = []
+            print("Generating assignments")
             for agent, info in murder_targets.items():
-                assignments.append(
-                    Murder(
-                        agent=agent,
-                        target=info["target"],
-                        task=next(tasks),
-                    )
+                assignment = Murder(
+                    agent=agent,
+                    target=info["target"],
+                    task=next(tasks),
                 )
+                print(
+                    f"{assignment.agent_id} -> {assignment.target_id}: {assignment.task}"
+                )
+                assignments.append(assignment)
 
             session.add_all(assignments)
 

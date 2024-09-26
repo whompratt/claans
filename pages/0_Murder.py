@@ -58,7 +58,7 @@ def init_page() -> None:
             st.form_submit_button(
                 label="Authorize",
                 on_click=data.get_agent_info,
-                kwargs={"_session": Database.get_session()},
+                kwargs={"_session": session},
             )
 
         if "agent_info" in st.session_state:
@@ -69,10 +69,13 @@ def init_page() -> None:
                 st.write(st.session_state["agent_info"]["target"]["user"].name)
                 st.subheader("Complete the following:")
                 st.write(st.session_state["agent_info"]["task"])
+                st.write(
+                    "Please alert your target should you succeed, so they know they are out."
+                )
                 if st.button(
                     label="Confirm Kill",
                     on_click=data.confirm_kill,
-                    kwargs={"_session": Database.get_session()},
+                    kwargs={"_session": session},
                 ):
                     st.toast("Well done agent. A new target has been assigned to you.")
                 st.write(

@@ -525,3 +525,25 @@ def confirm_kill(_session: Session) -> None:
         LOGGER.warning(f"Error clearing cache for 'get_claan_data' - {e}")
 
     get_agent_info(_session=_session)
+
+
+def cycle_target(_session: Session) -> None:
+    agent_info = st.session_state["agent_info"]
+
+    agent = agent_info["agent"]["user"]
+    target = agent_info["target"]["user"]
+
+    this_row = _session.execute(
+        select(Murder).where(Murder.agent == agent)
+    ).scalar_one()
+    next_row = _session.execute(
+        select(Murder).where(Murder.agent == target)
+    ).scalar_one()
+
+    this_row.target_id = next_row.target_id
+    this_row.target = next_row.target
+    this_row.task = next_row.task
+
+    _session.execute(delete(Murder).where(Murder.agent == next_row.agent))
+
+    get_agent_info(_session=_session)
