@@ -169,3 +169,4 @@ secrets.toml
 uv.lock
 
 *.ini
+temp/
