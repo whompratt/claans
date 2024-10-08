@@ -17,7 +17,11 @@ charset-normalizer==3.3.2
 click==8.1.7
     # via streamlit
 dnspython==2.6.1
-    # via pymongo
+    # via
+    #   email-validator
+    #   pymongo
+email-validator==2.2.0
+    # via -r requirements.in
 faker==29.0.0
     # via -r requirements.in
 gitdb==4.0.11
@@ -27,7 +31,9 @@ gitpython==3.1.43
 greenlet==3.1.1
     # via sqlalchemy
 idna==3.10
-    # via requests
+    # via
+    #   email-validator
+    #   requests
 iniconfig==2.0.0
     # via pytest
 jinja2==3.1.4
