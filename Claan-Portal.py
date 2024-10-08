@@ -39,15 +39,7 @@ def init_page() -> None:
                 st.image(str(path_img_logo))
         with col_header:
             st.header("Advancing Analytics")
-            st.subheader("Season 4 - Claan Calm")
-
-        st.header("Welcome")
-        st.write(
-            "Season 4 of Claans, 'Claan Caalm', is now OVER! Congratulations to the winning team!"
-        )
-        st.write(
-            "There will now be a 2 week hiatus before the beginning of the next season."
-        )
+            st.subheader("Season 5 - Claan ???")
     # --- HEADER ---#
 
     st.divider()
