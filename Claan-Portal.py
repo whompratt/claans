@@ -70,12 +70,6 @@ def init_page() -> None:
                     value=st.session_state[f"data_{claan.name}"]["score_season"],
                     delta=st.session_state[f"data_{claan.name}"]["score_fortnight"],
                 )
-
-    with st.container():
-        st.header("S4 In Time")
-        path_chart = pathlib.Path("./assets/images/results_s4.png")
-        if path_chart.exists():
-            st.image(str(path_chart))
     # --- SCORES --- #
 
     st.divider()
