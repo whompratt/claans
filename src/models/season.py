@@ -6,7 +6,7 @@ from src.models.base import Base
 
 
 class Season(Base):
-    __tablename__ = "season"
+    __tablename__ = "seasons"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False)

@@ -19,7 +19,7 @@ class TaskType(Enum):
 
 
 class Task(Base):
-    __tablename__ = "task"
+    __tablename__ = "tasks"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     description: Mapped[str] = mapped_column(nullable=False)

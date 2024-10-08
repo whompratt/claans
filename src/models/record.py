@@ -26,7 +26,7 @@ class Record(Base):
         dice: instance of enum `Dice`, which defines the number of sides of the score die to roll.
     """
 
-    __tablename__ = "record"
+    __tablename__ = "records"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     score: Mapped[int] = mapped_column(nullable=False)
@@ -34,10 +34,10 @@ class Record(Base):
     claan: Mapped[Claan] = mapped_column(nullable=False)
 
     task_id: Mapped[int] = mapped_column(
-        ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False
     )
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
     task: Mapped["Task"] = relationship("Task", back_populates="records")
