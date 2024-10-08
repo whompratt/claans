@@ -96,7 +96,9 @@ def user_management() -> None:
             if "_sa_instance_state" in df_users.columns:
                 df_users.drop("_sa_instance_state", inplace=True, axis=1)
             if "claan" in df_users.columns:
-                df_users["claan"] = df_users["claan"].apply(lambda x: x.value)
+                df_users["claan"] = df_users["claan"].apply(
+                    lambda x: x.value if x is not None else "None"
+                )
 
             st.dataframe(
                 data=df_users,
@@ -254,41 +256,6 @@ def task_management() -> None:
                 )
 
 
-def murder_management() -> None:
-    with Database.get_session() as session:
-        st.session_state["hit_list"] = data.get_hit_list(_session=session)
-
-    with st.container(border=True):
-        st.subheader("Murder Management")
-
-        with st.form(
-            key="murder_management_form",
-            clear_on_submit=False,
-            border=False,
-        ):
-            st.selectbox(
-                label="Agent",
-                key="murder_agent",
-                options=st.session_state["hit_list"],
-                format_func=lambda x: x.agent_name,
-            )
-            st.form_submit_button(
-                label="Select",
-                on_click=data.get_agent_info,
-                kwargs={"_session": Database.get_session()},
-            )
-
-        if "agent_info" in st.session_state:
-            st.write(f"Agent: {st.session_state["agent_info"]["agent"]["user"].name}")
-            st.write(f"Target: {st.session_state["agent_info"]["target"]["user"].name}")
-            if st.button(
-                label="Cycle",
-                on_click=data.cycle_target,
-                kwargs={"_session": session},
-            ):
-                pass
-
-
 def init_page() -> None:
     st.set_page_config(page_title="Admin", layout="wide")
 
@@ -311,7 +278,6 @@ def init_page() -> None:
 
         user_management()
         task_management()
-        murder_management()
 
 
 if __name__ == "__main__":
