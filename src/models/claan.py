@@ -10,6 +10,8 @@ class Claan(Enum):
     FIRE_DANCERS = "Fire Dancers"
     THUNDER_WALKERS = "Thunder Walkers"
     WAVE_RIDERS = "Wave Riders"
+    BEAST_RUNNERS = "Beast Runners"
+    IRON_STALKERS = "Iron Stalkers"
 
     def get_icon(self):
         match self.name:
@@ -21,3 +23,7 @@ class Claan(Enum):
                 return ":lightning_cloud:"
             case "WAVE_RIDERS":
                 return ":ocean:"
+            case "BEAST_RUNNERS":
+                return ":wolf:"
+            case "IRON_STALKERS":
+                return ":wrench:"
