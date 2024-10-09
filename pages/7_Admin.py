@@ -4,6 +4,7 @@ import streamlit as st
 from src.models.claan import Claan
 from src.models.dice import Dice
 from src.models.task import TaskType
+from src.models.user import User
 from src.utils import data
 from src.utils.database import Database, initialise
 
@@ -52,6 +53,47 @@ def check_password():
 
 
 @st.fragment
+def update_user_form():
+    with st.container(border=True):
+        st.subheader("Update User")
+        user: User = st.selectbox(
+            label="User",
+            key="update_user_user",
+            options=sorted(st.session_state["users"]),
+        )
+        if user:
+            if user.claan:
+                claan_index = list(Claan).index(user.claan)
+            else:
+                claan_index = None
+            st.text_input(
+                label="Long name",
+                key="update_user_long_name",
+                value=user.long_name,
+                disabled=True,
+            )
+            st.text_input(
+                label="Id",
+                key="update_user_id",
+                value=user.id,
+                disabled=True,
+            )
+            st.selectbox(
+                label="Claan",
+                key="update_user_claan",
+                options=Claan,
+                format_func=lambda claan: claan.value,
+                index=claan_index,
+            )
+            st.text_input(label="Email", key="update_user_email", value=user.email)
+            st.checkbox(
+                label="Active",
+                value=user.active,
+                key="update_user_active",
+            )
+
+
+@st.fragment
 def delete_user_form():
     with st.container(border=True):
         st.subheader("Delete User")
@@ -87,8 +129,25 @@ def user_management() -> None:
     with st.container(border=True):
         st.subheader("User Management")
 
-        col_df, col_forms = st.columns(2)
+        col_forms, col_df = st.columns(2)
 
+        with col_forms:
+            with st.form(key="add_user", clear_on_submit=True, border=True):
+                st.subheader("Add User")
+                st.text_input(label="Name", key="add_user_name", placeholder="John Doe")
+                st.selectbox(
+                    label="Claan",
+                    key="add_user_claan",
+                    options=Claan,
+                    format_func=lambda claan: claan.value,
+                )
+                st.form_submit_button(
+                    label="Submit",
+                    on_click=data.add_user,
+                    kwargs={"_session": Database.get_session()},
+                )
+            update_user_form()
+            delete_user_form()
         with col_df:
             df_users = pd.DataFrame.from_records(
                 data=[vars(user) for user in st.session_state["users"]]
@@ -106,22 +165,6 @@ def user_management() -> None:
                 hide_index=True,
                 column_config={"name": "Name", "claan": "Claan"},
             )
-        with col_forms:
-            with st.form(key="add_user", clear_on_submit=True, border=True):
-                st.subheader("Add User")
-                st.text_input(label="Name", key="add_user_name", placeholder="John Doe")
-                st.selectbox(
-                    label="Claan",
-                    key="add_user_claan",
-                    options=Claan,
-                    format_func=lambda claan: claan.value,
-                )
-                st.form_submit_button(
-                    label="Submit",
-                    on_click=data.add_user,
-                    kwargs={"_session": Database.get_session()},
-                )
-            delete_user_form()
 
 
 @st.fragment
