@@ -447,7 +447,6 @@ def update_user(_session: Session) -> User:
         transaction.commit()
 
     LOGGER.info("Reloading `users`")
-    _ = get_users(_session)
     get_users.clear()
     st.session_state["users"] = get_users(_session=_session)
 
