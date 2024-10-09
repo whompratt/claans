@@ -419,6 +419,49 @@ def add_user(_session: Session) -> User:
 
 
 @timer
+def update_user(_session: Session) -> User:
+    if st.session_state.keys() < {
+        "update_user_user",
+        "update_user_name",
+        "update_user_long_name",
+        "update_user_id",
+        "update_user_claan",
+        "update_user_email",
+        "update_user_active",
+    }:
+        LOGGER.error("`update_user` called but key contents were missing.")
+        st.warning(
+            "Unable to update user, as keys were missing from the session state."
+        )
+        return
+
+    with _session.begin_nested() as transaction:
+        user = _session.get(User, st.session_state["update_user_id"])
+
+        user.long_name = st.session_state["update_user_long_name"]
+        user.name = st.session_state["update_user_name"]
+        user.email = st.session_state["update_user_email"]
+        user.claan = st.session_state["update_user_claan"]
+        user.active = st.session_state["update_user_active"]
+
+        transaction.commit()
+
+    LOGGER.info("Reloading `users`")
+    _ = get_users(_session)
+    get_users.clear()
+    st.session_state["users"] = get_users(_session=_session)
+
+    LOGGER.info(f"Reload `users_{st.session_state["update_user_claan"].name}")
+    get_claan_users.clear(claan=st.session_state["update_user_claan"])
+    if f"users_{st.session_state["update_user_claan"]}" in st.session_state:
+        st.session_state[f"users_{st.session_state["update_user_claan"]}"] = (
+            get_claan_users(
+                _session=_session, claan=st.session_state["update_user_claan"]
+            )
+        )
+
+
+@timer
 def delete_user(_session: Session) -> None:
     if st.session_state.keys() < {"delete_user_selection"}:
         LOGGER.error("`delete_user` called but no user in session state")

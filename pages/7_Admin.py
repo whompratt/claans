@@ -67,6 +67,11 @@ def update_user_form():
             else:
                 claan_index = None
             st.text_input(
+                label="Name",
+                key="update_user_name",
+                value=user.name,
+            )
+            st.text_input(
                 label="Long name",
                 key="update_user_long_name",
                 value=user.long_name,
@@ -90,6 +95,14 @@ def update_user_form():
                 label="Active",
                 value=user.active,
                 key="update_user_active",
+            )
+
+            st.button(
+                label="Submit",
+                key="update_user_button",
+                type="primary",
+                on_click=data.update_user,
+                kwargs={"_session": Database.get_session()},
             )
 
 
