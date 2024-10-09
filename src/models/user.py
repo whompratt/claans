@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, List, Optional
+from functools import total_ordering
+from typing import TYPE_CHECKING, List, Optional, Type
 
 from email_validator import validate_email
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
     from src.models.record import Record
 
 
+@total_ordering
 class User(Base):
     __tablename__ = "users"
 
@@ -38,11 +40,32 @@ class User(Base):
         self.claan = claan
         self.active = active
 
+    def __dir__(self):
+        return ["long_name", "name", "email"]
+
+    def _is_valid_operand(self, other):
+        return all([hasattr(other, attr) for attr in dir(self)])
+
     def __repr__(self):
         return f"User({vars(self)})"
 
     def __str__(self):
-        return f"User '{self.name}' in Claan '{self.claan.value}'"
+        return f"{self.name}"
+
+    def __eq__(self, other: Type["User"]):
+        if not self._is_valid_operand(other):
+            return NotImplemented
+        return all(
+            [
+                (hasattr(other, attr)) and (getattr(self, attr) == getattr(other, attr))
+                for attr in dir(self)
+            ]
+        )
+
+    def __lt__(self, other: Type["User"]):
+        if not self._is_valid_operand(other):
+            return NotImplemented
+        return self.name < other.name
 
     @validates("email")
     def validate_email(self, key, value):
