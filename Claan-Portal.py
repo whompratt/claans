@@ -3,7 +3,7 @@ import pathlib
 import streamlit as st
 
 from src.models.claan import Claan
-from src.utils import data
+from src.utils import data, stock_game
 from src.utils.database import Database
 
 
@@ -24,7 +24,7 @@ def init_page() -> None:
             st.session_state["scores"] = data.get_scores(_session=session)
         for claan in Claan:
             if f"data_{claan.name}" not in st.session_state:
-                st.session_state[f"data_{claan.name}"] = data.get_claan_data(
+                st.session_state[f"data_{claan.name}"] = stock_game.get_corporate_data(
                     _session=session, claan=claan
                 )
         session.expunge_all()
@@ -58,9 +58,12 @@ def init_page() -> None:
                     st.image(str(claan_img))
 
                 st.metric(
-                    label=claan.value,
-                    value=st.session_state[f"data_{claan.name}"]["score_season"],
-                    delta=st.session_state[f"data_{claan.name}"]["score_fortnight"],
+                    label="Funds",
+                    value=f"${float(st.session_state[f"data_{claan.name}"]["funds"] or 0.0)}",
+                )
+                st.metric(
+                    label="Escrow",
+                    value=f"${float(st.session_state[f"data_{claan.name}"]["escrow"] or 0.0)}",
                 )
     # --- SCORES --- #
 

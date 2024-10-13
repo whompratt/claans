@@ -3,7 +3,6 @@ import streamlit as st
 
 from src.models.claan import Claan
 from src.models.dice import Dice
-from src.models.task import TaskType
 from src.models.user import User
 from src.utils import data
 from src.utils.database import Database, initialise
@@ -181,12 +180,12 @@ def user_management() -> None:
 
 
 @st.fragment
-def set_active_quest_form():
+def set_active_task_form():
     with st.container(border=True):
         st.subheader("Set Active Quest")
         quest_dice = st.selectbox(
             label="Dice to Update",
-            key="set_active_quest_dice",
+            key="set_active_task_dice",
             options=list(Dice),
             format_func=lambda dice: dice.name,
         )
@@ -194,56 +193,20 @@ def set_active_quest_form():
         if quest_dice:
             quest_selection = st.selectbox(
                 label="Quest",
-                key="set_active_quest_selection",
+                key="set_active_task_selection",
                 options=[
                     task
                     for task in st.session_state["tasks"]
-                    if task.dice == quest_dice and task.task_type == TaskType.QUEST
+                    if task.dice == quest_dice
                 ],
                 format_func=lambda task: task.description,
             )
         if st.button(
             label="Submit",
-            key="set_active_quest_submit",
+            key="set_active_task_submit",
             disabled=not (quest_dice and quest_selection),
             on_click=data.set_active_task,
-            kwargs={"_session": Database.get_session(), "task_type": TaskType.QUEST},
-        ):
-            st.rerun()
-
-
-@st.fragment
-def set_active_activity_form():
-    with st.container(border=True):
-        st.subheader("Set Active Activity")
-        activity_dice = st.selectbox(
-            label="Dice to Update",
-            key="set_active_activity_dice",
-            options=[Dice.D4, Dice.D6, Dice.D8, Dice.D10],
-            format_func=lambda dice: dice.name,
-        )
-        activity_selection = None
-        if activity_dice:
-            activity_selection = st.selectbox(
-                label="Activity",
-                key="set_active_activity_selection",
-                options=[
-                    task
-                    for task in st.session_state["tasks"]
-                    if task.dice == activity_dice
-                    and task.task_type == TaskType.ACTIVITY
-                ],
-                format_func=lambda task: task.description,
-            )
-        if st.button(
-            label="Submit",
-            key="set_active_activity_submit",
-            disabled=not (activity_dice and activity_selection),
-            on_click=data.set_active_task,
-            kwargs={
-                "_session": Database.get_session(),
-                "task_type": TaskType.ACTIVITY,
-            },
+            kwargs={"_session": Database.get_session()},
         ):
             st.rerun()
 
@@ -262,25 +225,16 @@ def task_management() -> None:
                 df_tasks.drop("_sa_instance_state", inplace=True, axis=1)
             if "dice" in df_tasks.columns:
                 df_tasks["dice"] = df_tasks["dice"].apply(lambda x: x.value)
-            if "task_type" in df_tasks.columns:
-                df_tasks["task_type"] = df_tasks["task_type"].apply(lambda x: x.value)
             st.dataframe(
                 data=df_tasks,
                 use_container_width=True,
                 hide_index=True,
             )
         with col_forms:
-            set_active_quest_form()
-            set_active_activity_form()
+            set_active_task_form()
             with st.form(key="add_task", clear_on_submit=True, border=True):
                 st.subheader("Add Task")
                 st.text_input(label="Description", key="add_task_description")
-                st.selectbox(
-                    label="Type",
-                    key="add_task_type",
-                    options=TaskType,
-                    format_func=lambda type: type.name.capitalize(),
-                )
                 st.selectbox(
                     label="Dice",
                     key="add_task_dice",

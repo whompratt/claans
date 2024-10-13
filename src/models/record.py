@@ -22,7 +22,6 @@ class Record(Base):
     Attributes:
         user: name of the user submitting the quest or activity.
         claan: instance of enum `Claans`, defining which claan this user is in.
-        type: instance of enum `RecordType`, defining whether this is a quest or activity.
         dice: instance of enum `Dice`, which defines the number of sides of the score die to roll.
     """
 
@@ -42,6 +41,12 @@ class Record(Base):
 
     task: Mapped["Task"] = relationship("Task", back_populates="records")
     user: Mapped["User"] = relationship("User", back_populates="records")
+
+    # Column for stock game only - nullable True so that this can be ignored for any existing records
+    escrow: Mapped[bool] = mapped_column(
+        nullable=True,
+        default=True,
+    )
 
     __table_args__ = (
         Index(

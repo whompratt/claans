@@ -8,10 +8,12 @@ from sqlalchemy.orm import Session
 
 from src.models.claan import Claan
 from src.models.dice import Dice
+from src.models.market.portfolio import Portfolio
 from src.models.record import Record
 from src.models.season import Season
-from src.models.task import Task, TaskType
+from src.models.task import Task
 from src.models.user import User
+from src.utils import stock_game
 from src.utils.logger import LOGGER
 
 
@@ -57,18 +59,12 @@ def get_claan_data(_session: Session, claan: Claan):
         .join(Record.task)
         .where(Record.claan == claan)
     )
-    count_quest = _session.execute(
-        query_count.where(Task.task_type == TaskType.QUEST)
-    ).scalar_one_or_none()
-    count_activity = _session.execute(
-        query_count.where(Task.task_type == TaskType.ACTIVITY)
-    ).scalar_one_or_none()
+    count = _session.execute(query_count).scalar_one_or_none()
 
     return {
         "score_season": score_season or 0,
         "score_fortnight": score_fortnight or 0,
-        "count_quest": count_quest or 0,
-        "count_activity": count_activity or 0,
+        "task_count": count or 0,
     }
 
 
@@ -91,15 +87,15 @@ def get_historical_data(_session: Session, claan: Claan) -> None:
 
 @st.cache_data()
 def get_tasks(_session: Session) -> List[Task]:
-    query = select(Task).order_by(Task.dice.asc()).order_by(Task.task_type.desc())
+    query = select(Task).order_by(Task.dice.asc())
     result = _session.execute(query).scalars().all()
 
     return result
 
 
 @st.cache_data()
-def get_active_tasks(_session: Session, task_type: TaskType) -> List[Task]:
-    query = select(Task).where(Task.active, Task.task_type == task_type)
+def get_active_tasks(_session: Session) -> List[Task]:
+    query = select(Task).where(Task.active)
     result = _session.execute(query).scalars().all()
 
     return result
@@ -108,7 +104,6 @@ def get_active_tasks(_session: Session, task_type: TaskType) -> List[Task]:
 def add_task(_session: Session) -> Task:
     if st.session_state.keys() < {
         "add_task_description",
-        "add_task_type",
         "add_task_dice",
         "add_task_ephemeral",
     }:
@@ -117,13 +112,11 @@ def add_task(_session: Session) -> Task:
         return
 
     task_description = st.session_state["add_task_description"]
-    task_type = st.session_state["add_task_type"]
     task_dice = st.session_state["add_task_dice"]
     task_ephemeral = st.session_state["add_task_ephemeral"]
 
     task = Task(
         description=task_description,
-        task_type=task_type,
         dice=task_dice,
         ephemeral=task_ephemeral,
     )
@@ -153,25 +146,15 @@ def delete_task(_session: Session) -> None:
         get_tasks.clear()
         st.session_state["tasks"] = get_users(_session=_session)
 
-    if "active_quest" in st.session_state and task in st.session_state["active_quest"]:
-        get_active_tasks.clear(task_type=TaskType.QUEST)
-        st.session_state["active_quest"] = get_active_tasks(
-            _session=_session, task_type=TaskType.QUEST
-        )
-    if (
-        "active_activity" in st.session_state
-        and task in st.session_state["active_activity"]
-    ):
-        get_active_tasks.clear(task_type=TaskType.ACTIVITY)
-        st.session_state["active_activity"] = get_active_tasks(
-            _session=_session, task_type=TaskType.ACTIVITY
-        )
+    if "active_task" in st.session_state and task in st.session_state["active_quest"]:
+        get_active_tasks.clear()
+        st.session_state["active_quest"] = get_active_tasks(_session=_session)
 
 
-def set_active_task(_session: Session, task_type: TaskType) -> None:
+def set_active_task(_session: Session) -> None:
     if st.session_state.keys() < {
-        f"set_active_{task_type.value}_selection",
-        f"set_active_{task_type.value}_dice",
+        "set_active_task_selection",
+        "set_active_task_dice",
     }:
         LOGGER.error("`set_active_task` called but required keys not in session state")
         st.warning("Unable to set active task, missing keys in session state.")
@@ -180,17 +163,12 @@ def set_active_task(_session: Session, task_type: TaskType) -> None:
     query = (
         select(Task)
         .filter_by(
-            task_type=task_type,
-            dice=st.session_state[f"set_active_{task_type.value}_dice"],
             active=True,
         )
         .limit(1)
     )
-    LOGGER.warning(st.session_state[f"set_active_{task_type.value}_selection"].id)
     task_current = _session.execute(query).scalar_one_or_none()
-    task_new = _session.get(
-        Task, st.session_state[f"set_active_{task_type.value}_selection"].id
-    )
+    task_new = _session.get(Task, st.session_state["set_active_task_selection"].id)
 
     if task_current is not None:
         task_current.active = False
@@ -203,12 +181,10 @@ def set_active_task(_session: Session, task_type: TaskType) -> None:
         get_tasks.clear()
         st.session_state["tasks"] = get_tasks(_session=_session)
 
-    if f"active_{task_type.value}" in st.session_state:
-        LOGGER.info(f"Reloading `active_{task_type.value}")
-        get_active_tasks.clear(task_type=task_type)
-        st.session_state[f"active_{task_type.value}"] = get_active_tasks(
-            _session=_session, task_type=task_type
-        )
+    if "active_task" in st.session_state:
+        LOGGER.info("Reloading `active_task")
+        get_active_tasks.clear()
+        st.session_state["active_task"] = get_active_tasks(_session=_session)
 
 
 @st.cache_data(ttl=timedelta(weeks=2))
@@ -286,10 +262,10 @@ def get_fortnight_info(_session: Session) -> Dict[str, int | date]:
     }
 
 
-def submit_record(_session: Session, task_type: TaskType) -> Record:
+def submit_record(_session: Session) -> Record:
     if st.session_state.keys() < {
-        f"{task_type.value}_user",
-        f"{task_type.value}_selection",
+        "task_user",
+        "task_selection",
     }:
         LOGGER.error("`submit_record` called but required keys not in session state")
         st.warning(
@@ -297,12 +273,12 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
         )
         return
 
-    record_claan = st.session_state[f"{task_type.value}_user"].claan
-    record_dice = st.session_state[f"{task_type.value}_selection"].dice
+    record_claan = st.session_state["task_user"].claan
+    record_dice = st.session_state["task_selection"].dice
 
     record = Record(
-        task=st.session_state[f"{task_type.value}_selection"],
-        user=st.session_state[f"{task_type.value}_user"],
+        task=st.session_state["task_selection"],
+        user=st.session_state["task_user"],
         claan=record_claan,
         dice=record_dice,
     )
@@ -353,8 +329,8 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
 
     if f"data_{record_claan.name}" in st.session_state:
         LOGGER.info("Reloading `data`")
-        get_claan_data.clear(claan=record_claan)
-        st.session_state[f"data_{record_claan.name}"] = get_claan_data(
+        stock_game.get_corporate_data.clear(claan=record_claan)
+        st.session_state[f"data_{record_claan.name}"] = stock_game.get_corporate_data(
             _session=_session, claan=record_claan
         )
 
@@ -376,6 +352,20 @@ def get_claan_users(_session: Session, claan: Claan) -> List[User]:
     result = _session.execute(query).scalars().all()
 
     return result
+
+
+def get_portfolio(_session: Session, _user: User) -> Portfolio:
+    portfolio_query = select(Portfolio).where(Portfolio.user_id == _user.id)
+    portfolio = _session.execute(portfolio_query).scalars().one()
+
+    return portfolio
+
+
+def update_vote(_session: Session, _portfolio: Portfolio) -> None:
+    portfolio = _session.get(Portfolio, _portfolio.id)
+    portfolio.board_vote = st.session_state["portfolio_vote"]
+    _session.commit()
+    st.toast("Vote updated")
 
 
 def add_user(_session: Session) -> User:
