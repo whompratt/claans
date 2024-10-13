@@ -33,6 +33,7 @@ class ClaanPage:
                 st.session_state["active_tasks"] = data.get_active_tasks(
                     _session=session
                 )
+            st.write(f"Active tasks: {len(st.session_state["active_tasks"])}")
             if f"users_{self.claan.name}" not in st.session_state:
                 st.session_state[f"users_{self.claan.name}"] = data.get_claan_users(
                     _session=session, claan=self.claan
@@ -160,7 +161,7 @@ class ClaanPage:
                     st.radio(
                         label="Tasks",
                         options=st.session_state["active_tasks"],
-                        format_func=lambda task: f"{task.dice.name}: {task.description}",
+                        format_func=lambda task: f"${task.reward.value}: {task.description}",
                         key="task_selection",
                     )
 

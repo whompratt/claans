@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 from src.models.claan import Claan
-from src.models.dice import Dice
+from src.models.task_reward import TaskReward
 from src.models.user import User
 from src.utils import data
 from src.utils.database import Database, initialise
@@ -182,29 +182,29 @@ def user_management() -> None:
 @st.fragment
 def set_active_task_form():
     with st.container(border=True):
-        st.subheader("Set Active Quest")
-        quest_dice = st.selectbox(
+        st.subheader("Set Active Tasks")
+        quest_reward = st.selectbox(
             label="Dice to Update",
-            key="set_active_task_dice",
-            options=list(Dice),
+            key="set_active_task_reward",
+            options=list(TaskReward),
             format_func=lambda dice: dice.name,
         )
         quest_selection = None
-        if quest_dice:
+        if quest_reward:
             quest_selection = st.selectbox(
                 label="Quest",
                 key="set_active_task_selection",
                 options=[
                     task
                     for task in st.session_state["tasks"]
-                    if task.dice == quest_dice
+                    if task.reward == quest_reward
                 ],
                 format_func=lambda task: task.description,
             )
         if st.button(
             label="Submit",
             key="set_active_task_submit",
-            disabled=not (quest_dice and quest_selection),
+            disabled=not (quest_reward and quest_selection),
             on_click=data.set_active_task,
             kwargs={"_session": Database.get_session()},
         ):
@@ -223,8 +223,8 @@ def task_management() -> None:
             )
             if "_sa_instance_state" in df_tasks.columns:
                 df_tasks.drop("_sa_instance_state", inplace=True, axis=1)
-            if "dice" in df_tasks.columns:
-                df_tasks["dice"] = df_tasks["dice"].apply(lambda x: x.value)
+            if "reward" in df_tasks.columns:
+                df_tasks["reward"] = df_tasks["reward"].apply(lambda x: x.value)
             st.dataframe(
                 data=df_tasks,
                 use_container_width=True,
@@ -238,7 +238,7 @@ def task_management() -> None:
                 st.selectbox(
                     label="Dice",
                     key="add_task_dice",
-                    options=Dice,
+                    options=TaskReward,
                     format_func=lambda die: die.name,
                 )
                 st.toggle(

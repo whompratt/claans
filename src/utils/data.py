@@ -7,11 +7,11 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from src.models.claan import Claan
-from src.models.dice import Dice
 from src.models.market.portfolio import Portfolio
 from src.models.record import Record
 from src.models.season import Season
 from src.models.task import Task
+from src.models.task_reward import TaskReward
 from src.models.user import User
 from src.utils import stock_game
 from src.utils.logger import LOGGER
@@ -73,7 +73,7 @@ def get_historical_data(_session: Session, claan: Claan) -> None:
     season_start = get_season_start(_session=_session)
 
     query = (
-        select(User.name, Task.description, Task.dice, Record.score, Record.timestamp)
+        select(User.name, Task.description, Task.reward, Record.score, Record.timestamp)
         .join(Record.user)
         .join(Record.task)
         .where(Record.claan == claan)
@@ -87,7 +87,7 @@ def get_historical_data(_session: Session, claan: Claan) -> None:
 
 @st.cache_data()
 def get_tasks(_session: Session) -> List[Task]:
-    query = select(Task).order_by(Task.dice.asc())
+    query = select(Task).order_by(Task.reward.asc())
     result = _session.execute(query).scalars().all()
 
     return result
@@ -95,7 +95,7 @@ def get_tasks(_session: Session) -> List[Task]:
 
 @st.cache_data()
 def get_active_tasks(_session: Session) -> List[Task]:
-    query = select(Task).where(Task.active)
+    query = select(Task).where(Task.active).order_by(Task.reward)
     result = _session.execute(query).scalars().all()
 
     return result
@@ -117,7 +117,7 @@ def add_task(_session: Session) -> Task:
 
     task = Task(
         description=task_description,
-        dice=task_dice,
+        reward=task_dice,
         ephemeral=task_ephemeral,
     )
 
@@ -154,7 +154,7 @@ def delete_task(_session: Session) -> None:
 def set_active_task(_session: Session) -> None:
     if st.session_state.keys() < {
         "set_active_task_selection",
-        "set_active_task_dice",
+        "set_active_task_reward",
     }:
         LOGGER.error("`set_active_task` called but required keys not in session state")
         st.warning("Unable to set active task, missing keys in session state.")
@@ -162,10 +162,8 @@ def set_active_task(_session: Session) -> None:
 
     query = (
         select(Task)
-        .filter_by(
-            active=True,
-        )
-        .limit(1)
+        .where(Task.active)
+        .where(Task.reward == st.session_state["set_active_task_reward"])
     )
     task_current = _session.execute(query).scalar_one_or_none()
     task_new = _session.get(Task, st.session_state["set_active_task_selection"].id)
@@ -176,15 +174,14 @@ def set_active_task(_session: Session) -> None:
 
     _session.commit()
 
+    if "active_tasks" in st.session_state:
+        LOGGER.info("Reloading `active_tasks`")
+        get_active_tasks.clear()
+        st.session_state["active_tasks"] = get_active_tasks(_session=_session)
     if "tasks" in st.session_state:
         LOGGER.info("Reloading `tasks`")
         get_tasks.clear()
         st.session_state["tasks"] = get_tasks(_session=_session)
-
-    if "active_task" in st.session_state:
-        LOGGER.info("Reloading `active_task")
-        get_active_tasks.clear()
-        st.session_state["active_task"] = get_active_tasks(_session=_session)
 
 
 @st.cache_data(ttl=timedelta(weeks=2))
@@ -280,12 +277,12 @@ def submit_record(_session: Session) -> Record:
         task=st.session_state["task_selection"],
         user=st.session_state["task_user"],
         claan=record_claan,
-        dice=record_dice,
+        reward=record_dice,
     )
 
     # Fortnightly quest
     result = None
-    if record_dice == Dice.D12:
+    if record_dice == TaskReward.D12:
         season_start = get_season_start(_session=_session)
         fortnight_number = get_fortnight_number(_session=_session)
         query = (

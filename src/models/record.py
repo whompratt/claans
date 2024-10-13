@@ -5,8 +5,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base
 from src.models.claan import Claan
-from src.models.dice import Dice
 from src.models.task import Task
+from src.models.task_reward import TaskReward
 from src.models.user import User
 
 
@@ -63,8 +63,10 @@ class Record(Base):
     # TODO: Don't take dice in, read from task instead
     # Basically if task is Task, then dice can be Dice or None
     # If task is int, dice must be Dice
-    def __init__(self, task: Task | int, user: User | int, claan: Claan, dice: Dice):
-        self.score = dice.roll()
+    def __init__(
+        self, task: Task | int, user: User | int, claan: Claan, reward: TaskReward
+    ):
+        self.score = reward.value
         self.timestamp = date.today()
         self.claan = claan
 
