@@ -65,7 +65,7 @@ def get_claan_data(_session: Session, claan: Claan):
     }
 
 
-@st.cache_data
+@st.cache_data(ttl=43200)
 def get_historical_data(_session: Session, claan: Claan) -> None:
     season_start = get_season_start(_session=_session)
 
