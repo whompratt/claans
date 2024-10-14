@@ -36,16 +36,16 @@ def main():
         with session.begin_nested() as transaction:
             LOGGER.info("Populating instruments")
 
-            companies_query = select(Company.id)
+            companies_query = select(Company)
             companies = session.execute(companies_query).scalars().all()
 
             instruments_query = select(Instrument.company_id)
             instruments = session.execute(instruments_query).scalars().all()
 
             new_instruments = [
-                Instrument(company)
+                Instrument(company.id, company.claan.name.split("_")[0].upper())
                 for company in companies
-                if company not in instruments
+                if company.id not in instruments
             ]
             session.add_all(new_instruments)
             transaction.commit()

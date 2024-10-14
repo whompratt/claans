@@ -16,6 +16,7 @@ class Instrument(Base):
     __tablename__ = "instruments"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    ticker: Mapped[str] = mapped_column(nullable=False)
     price: Mapped[float] = mapped_column(nullable=False, default=10.0)
     enabled: Mapped[bool] = mapped_column(nullable=False, default=False)
 
@@ -43,7 +44,9 @@ class Instrument(Base):
         passive_updates=True,
     )
 
-    def __init__(self, company: Company | int, price: Optional[float] = None):
+    def __init__(
+        self, company: Company | int, ticker: str, price: Optional[float] = None
+    ):
         if isinstance(company, Company):
             self.company_id = company.id
         elif isinstance(company, int):
@@ -53,6 +56,7 @@ class Instrument(Base):
                 "Instrument.copmany_id can only be initialized with a company object or an integer id"
             )
         self.price = price or 10.0
+        self.ticker = ticker
 
     @classmethod
     def create(
