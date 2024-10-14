@@ -35,11 +35,16 @@ def get_portfolio(_session: Session, user_id: int) -> Portfolio:
     return portfolio
 
 
-def update_vote(_session: Session, _portfolio: Portfolio) -> None:
+def update_vote(_session: Session, _portfolio: Portfolio, _claan: Claan) -> None:
     portfolio = _session.get(Portfolio, _portfolio.id)
     portfolio.board_vote = st.session_state["portfolio_vote"]
     _session.commit()
     st.toast("Vote updated")
+
+    get_portfolio.clear(user_id=_portfolio.user_id)
+    st.session_state[f"portfolios_{_claan.name}"][_portfolio.user_id] = get_portfolio(
+        _session=_session, user_id=_portfolio.user_id
+    )
 
 
 @st.cache_data(ttl=600)
