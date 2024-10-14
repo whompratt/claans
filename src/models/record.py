@@ -5,8 +5,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import Base
 from src.models.claan import Claan
-from src.models.dice import Dice
 from src.models.task import Task
+from src.models.task_reward import TaskReward
 from src.models.user import User
 
 
@@ -22,11 +22,10 @@ class Record(Base):
     Attributes:
         user: name of the user submitting the quest or activity.
         claan: instance of enum `Claans`, defining which claan this user is in.
-        type: instance of enum `RecordType`, defining whether this is a quest or activity.
         dice: instance of enum `Dice`, which defines the number of sides of the score die to roll.
     """
 
-    __tablename__ = "record"
+    __tablename__ = "records"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     score: Mapped[int] = mapped_column(nullable=False)
@@ -34,14 +33,20 @@ class Record(Base):
     claan: Mapped[Claan] = mapped_column(nullable=False)
 
     task_id: Mapped[int] = mapped_column(
-        ForeignKey("task.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False
     )
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("user.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
     task: Mapped["Task"] = relationship("Task", back_populates="records")
     user: Mapped["User"] = relationship("User", back_populates="records")
+
+    # Column for stock game only - nullable True so that this can be ignored for any existing records
+    escrow: Mapped[bool] = mapped_column(
+        nullable=True,
+        default=True,
+    )
 
     __table_args__ = (
         Index(
@@ -58,8 +63,10 @@ class Record(Base):
     # TODO: Don't take dice in, read from task instead
     # Basically if task is Task, then dice can be Dice or None
     # If task is int, dice must be Dice
-    def __init__(self, task: Task | int, user: User | int, claan: Claan, dice: Dice):
-        self.score = dice.roll()
+    def __init__(
+        self, task: Task | int, user: User | int, claan: Claan, reward: TaskReward
+    ):
+        self.score = reward.value
         self.timestamp = date.today()
         self.claan = claan
 

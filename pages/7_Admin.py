@@ -2,8 +2,8 @@ import pandas as pd
 import streamlit as st
 
 from src.models.claan import Claan
-from src.models.dice import Dice
-from src.models.task import TaskType
+from src.models.task_reward import TaskReward
+from src.models.user import User
 from src.utils import data
 from src.utils.database import Database, initialise
 
@@ -52,6 +52,60 @@ def check_password():
 
 
 @st.fragment
+def update_user_form():
+    with st.container(border=True):
+        st.subheader("Update User")
+        user: User = st.selectbox(
+            label="User",
+            key="update_user_user",
+            options=sorted(st.session_state["users"]),
+        )
+        if user:
+            if user.claan:
+                claan_index = list(Claan).index(user.claan)
+            else:
+                claan_index = None
+            st.text_input(
+                label="Name",
+                key="update_user_name",
+                value=user.name,
+            )
+            st.text_input(
+                label="Long name",
+                key="update_user_long_name",
+                value=user.long_name,
+                disabled=True,
+            )
+            st.text_input(
+                label="Id",
+                key="update_user_id",
+                value=user.id,
+                disabled=True,
+            )
+            st.selectbox(
+                label="Claan",
+                key="update_user_claan",
+                options=Claan,
+                format_func=lambda claan: claan.value,
+                index=claan_index,
+            )
+            st.text_input(label="Email", key="update_user_email", value=user.email)
+            st.checkbox(
+                label="Active",
+                value=user.active,
+                key="update_user_active",
+            )
+
+            st.button(
+                label="Submit",
+                key="update_user_button",
+                type="primary",
+                on_click=data.update_user,
+                kwargs={"_session": Database.get_session()},
+            )
+
+
+@st.fragment
 def delete_user_form():
     with st.container(border=True):
         st.subheader("Delete User")
@@ -87,23 +141,8 @@ def user_management() -> None:
     with st.container(border=True):
         st.subheader("User Management")
 
-        col_df, col_forms = st.columns(2)
+        col_forms, col_df = st.columns(2)
 
-        with col_df:
-            df_users = pd.DataFrame.from_records(
-                data=[vars(user) for user in st.session_state["users"]]
-            )
-            if "_sa_instance_state" in df_users.columns:
-                df_users.drop("_sa_instance_state", inplace=True, axis=1)
-            if "claan" in df_users.columns:
-                df_users["claan"] = df_users["claan"].apply(lambda x: x.value)
-
-            st.dataframe(
-                data=df_users,
-                use_container_width=True,
-                hide_index=True,
-                column_config={"name": "Name", "claan": "Claan"},
-            )
         with col_forms:
             with st.form(key="add_user", clear_on_submit=True, border=True):
                 st.subheader("Add User")
@@ -119,73 +158,55 @@ def user_management() -> None:
                     on_click=data.add_user,
                     kwargs={"_session": Database.get_session()},
                 )
+            update_user_form()
             delete_user_form()
+        with col_df:
+            df_users = pd.DataFrame.from_records(
+                data=[vars(user) for user in st.session_state["users"]]
+            )
+            if "_sa_instance_state" in df_users.columns:
+                df_users.drop("_sa_instance_state", inplace=True, axis=1)
+            if "claan" in df_users.columns:
+                df_users["claan"] = df_users["claan"].apply(
+                    lambda x: x.value if x is not None else "None"
+                )
+
+            st.dataframe(
+                data=df_users,
+                use_container_width=True,
+                hide_index=True,
+                column_config={"name": "Name", "claan": "Claan"},
+            )
 
 
 @st.fragment
-def set_active_quest_form():
+def set_active_task_form():
     with st.container(border=True):
-        st.subheader("Set Active Quest")
-        quest_dice = st.selectbox(
+        st.subheader("Set Active Tasks")
+        quest_reward = st.selectbox(
             label="Dice to Update",
-            key="set_active_quest_dice",
-            options=list(Dice),
+            key="set_active_task_reward",
+            options=list(TaskReward),
             format_func=lambda dice: dice.name,
         )
         quest_selection = None
-        if quest_dice:
+        if quest_reward:
             quest_selection = st.selectbox(
                 label="Quest",
-                key="set_active_quest_selection",
+                key="set_active_task_selection",
                 options=[
                     task
                     for task in st.session_state["tasks"]
-                    if task.dice == quest_dice and task.task_type == TaskType.QUEST
+                    if task.reward == quest_reward
                 ],
                 format_func=lambda task: task.description,
             )
         if st.button(
             label="Submit",
-            key="set_active_quest_submit",
-            disabled=not (quest_dice and quest_selection),
+            key="set_active_task_submit",
+            disabled=not (quest_reward and quest_selection),
             on_click=data.set_active_task,
-            kwargs={"_session": Database.get_session(), "task_type": TaskType.QUEST},
-        ):
-            st.rerun()
-
-
-@st.fragment
-def set_active_activity_form():
-    with st.container(border=True):
-        st.subheader("Set Active Activity")
-        activity_dice = st.selectbox(
-            label="Dice to Update",
-            key="set_active_activity_dice",
-            options=[Dice.D4, Dice.D6, Dice.D8, Dice.D10],
-            format_func=lambda dice: dice.name,
-        )
-        activity_selection = None
-        if activity_dice:
-            activity_selection = st.selectbox(
-                label="Activity",
-                key="set_active_activity_selection",
-                options=[
-                    task
-                    for task in st.session_state["tasks"]
-                    if task.dice == activity_dice
-                    and task.task_type == TaskType.ACTIVITY
-                ],
-                format_func=lambda task: task.description,
-            )
-        if st.button(
-            label="Submit",
-            key="set_active_activity_submit",
-            disabled=not (activity_dice and activity_selection),
-            on_click=data.set_active_task,
-            kwargs={
-                "_session": Database.get_session(),
-                "task_type": TaskType.ACTIVITY,
-            },
+            kwargs={"_session": Database.get_session()},
         ):
             st.rerun()
 
@@ -202,31 +223,22 @@ def task_management() -> None:
             )
             if "_sa_instance_state" in df_tasks.columns:
                 df_tasks.drop("_sa_instance_state", inplace=True, axis=1)
-            if "dice" in df_tasks.columns:
-                df_tasks["dice"] = df_tasks["dice"].apply(lambda x: x.value)
-            if "task_type" in df_tasks.columns:
-                df_tasks["task_type"] = df_tasks["task_type"].apply(lambda x: x.value)
+            if "reward" in df_tasks.columns:
+                df_tasks["reward"] = df_tasks["reward"].apply(lambda x: x.value)
             st.dataframe(
                 data=df_tasks,
                 use_container_width=True,
                 hide_index=True,
             )
         with col_forms:
-            set_active_quest_form()
-            set_active_activity_form()
+            set_active_task_form()
             with st.form(key="add_task", clear_on_submit=True, border=True):
                 st.subheader("Add Task")
                 st.text_input(label="Description", key="add_task_description")
                 st.selectbox(
-                    label="Type",
-                    key="add_task_type",
-                    options=TaskType,
-                    format_func=lambda type: type.name.capitalize(),
-                )
-                st.selectbox(
                     label="Dice",
                     key="add_task_dice",
-                    options=Dice,
+                    options=TaskReward,
                     format_func=lambda die: die.name,
                 )
                 st.toggle(
@@ -254,41 +266,6 @@ def task_management() -> None:
                 )
 
 
-def murder_management() -> None:
-    with Database.get_session() as session:
-        st.session_state["hit_list"] = data.get_hit_list(_session=session)
-
-    with st.container(border=True):
-        st.subheader("Murder Management")
-
-        with st.form(
-            key="murder_management_form",
-            clear_on_submit=False,
-            border=False,
-        ):
-            st.selectbox(
-                label="Agent",
-                key="murder_agent",
-                options=st.session_state["hit_list"],
-                format_func=lambda x: x.agent_name,
-            )
-            st.form_submit_button(
-                label="Select",
-                on_click=data.get_agent_info,
-                kwargs={"_session": Database.get_session()},
-            )
-
-        if "agent_info" in st.session_state:
-            st.write(f"Agent: {st.session_state["agent_info"]["agent"]["user"].name}")
-            st.write(f"Target: {st.session_state["agent_info"]["target"]["user"].name}")
-            if st.button(
-                label="Cycle",
-                on_click=data.cycle_target,
-                kwargs={"_session": session},
-            ):
-                pass
-
-
 def init_page() -> None:
     st.set_page_config(page_title="Admin", layout="wide")
 
@@ -311,7 +288,6 @@ def init_page() -> None:
 
         user_management()
         task_management()
-        murder_management()
 
 
 if __name__ == "__main__":

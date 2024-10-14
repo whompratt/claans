@@ -4,8 +4,8 @@ import pandas as pd
 import streamlit as st
 
 from src.models.claan import Claan
-from src.models.task import TaskType
-from src.utils import data
+from src.models.market.portfolio import BoardVote
+from src.utils import data, stock_game
 from src.utils.database import Database
 
 
@@ -29,23 +29,25 @@ class ClaanPage:
         )
 
         with Database.get_session() as session:
-            if "active_quest" not in st.session_state:
-                st.session_state["active_quest"] = data.get_active_tasks(
-                    _session=session, task_type=TaskType.QUEST
+            if "active_tasks" not in st.session_state:
+                st.session_state["active_tasks"] = data.get_active_tasks(
+                    _session=session
                 )
-            if "active_activity" not in st.session_state:
-                st.session_state["active_activity"] = data.get_active_tasks(
-                    _session=session, task_type=TaskType.ACTIVITY
-                )
+            st.write(f"Active tasks: {len(st.session_state["active_tasks"])}")
             if f"users_{self.claan.name}" not in st.session_state:
                 st.session_state[f"users_{self.claan.name}"] = data.get_claan_users(
                     _session=session, claan=self.claan
                 )
+            if f"portfolios_{self.claan.name}" not in st.session_state:
+                st.session_state[f"portfolios_{self.claan.name}"] = {
+                    user.id: data.get_portfolio(session, user)
+                    for user in st.session_state[f"users_{self.claan.name}"]
+                }
             if "scores" not in st.session_state:
                 st.session_state["scores"] = data.get_scores(_session=session)
             if f"data_{self.claan.name}" not in st.session_state:
-                st.session_state[f"data_{self.claan.name}"] = data.get_claan_data(
-                    _session=session, claan=self.claan
+                st.session_state[f"data_{self.claan.name}"] = (
+                    stock_game.get_corporate_data(_session=session, claan=self.claan)
                 )
             if f"historical_{self.claan.name}" not in st.session_state:
                 st.session_state[f"historical_{self.claan.name}"] = (
@@ -98,17 +100,15 @@ class ClaanPage:
                 st.subheader("Advancing Analytics")
                 st.title(self.claan.value)
                 st.write(
-                    f"Welcome to the {self.claan.value} Claan Area! Here you can log quests, activities, and steps!"
+                    f"Welcome to the {self.claan.value} Claan Area! Here you can log tasks!"
                 )
                 st.subheader("Fortnight Breakdown!")
 
                 col_1, col_2, col_3, col_4 = st.columns(4)
                 with col_1:
                     st.metric(
-                        label="Overall Score",
-                        value=st.session_state[f"data_{self.claan.name}"][
-                            "score_season"
-                        ],
+                        label="Banked Funds",
+                        value=f"${float(st.session_state[f"data_{self.claan.name}"]["funds"] or 0.0)}",
                     )
                     st.metric(
                         label="Fortnight Number",
@@ -118,10 +118,8 @@ class ClaanPage:
                     )
                 with col_2:
                     st.metric(
-                        "Fortnight Score",
-                        value=st.session_state[f"data_{self.claan.name}"][
-                            "score_fortnight"
-                        ],
+                        "In Escrow",
+                        value=f"${float(st.session_state[f"data_{self.claan.name}"]["escrow"] or 0.0)}",
                     )
                     st.metric(
                         label="Started",
@@ -130,18 +128,12 @@ class ClaanPage:
                 with col_3:
                     st.metric(
                         "Tasks Completed",
-                        value=st.session_state[f"data_{self.claan.name}"][
-                            "count_quest"
-                        ],
+                        value=st.session_state[f"data_{self.claan.name}"]["task_count"],
                     )
                     st.metric(
                         label="Ends",
                         value=str(st.session_state["fortnight_info"].get("end_date")),
                     )
-                col_4.metric(
-                    "Activities Completed",
-                    value=st.session_state[f"data_{self.claan.name}"]["count_activity"],
-                )
             with header_right:
                 claan_img = pathlib.Path(
                     f"./assets/images/{self.claan.name.lower()}_hex.png"
@@ -153,61 +145,57 @@ class ClaanPage:
 
         # =-- SUBMISSION --= #
 
-        col_quest, col_activity = st.columns(2)
+        with st.container(border=True):
+            user = st.selectbox(
+                label="Your name",
+                key="task_user",
+                options=st.session_state[f"users_{self.claan.name}"],
+                format_func=lambda user: user.name,
+            )
 
-        with col_quest:
-            with st.form(key="form_submit_quest"):
-                st.header("Quests")
+            col_task, col_portfolio = st.columns(2)
+            with col_task:
+                with st.form(key="form_submit_task"):
+                    st.header("Tasks")
 
-                st.selectbox(
-                    label="Your name",
-                    key="quest_user",
-                    options=st.session_state[f"users_{self.claan.name}"],
-                    format_func=lambda user: user.name,
-                )
+                    st.radio(
+                        label="Tasks",
+                        options=st.session_state["active_tasks"],
+                        format_func=lambda task: f"${task.reward.value}: {task.description}",
+                        key="task_selection",
+                    )
 
-                st.radio(
-                    label="Quests",
-                    options=st.session_state["active_quest"],
-                    format_func=lambda task: f"{task.dice.name}: {task.description}",
-                    key="quest_selection",
-                )
+                    st.form_submit_button(
+                        label="Submit",
+                        on_click=data.submit_record,
+                        kwargs={
+                            "_session": Database.get_session(),
+                        },
+                    )
 
-                st.form_submit_button(
-                    label="Submit",
-                    on_click=data.submit_record,
-                    kwargs={
-                        "_session": Database.get_session(),
-                        "task_type": TaskType.QUEST,
-                    },
-                )
-
-        with col_activity:
-            with st.form(key="form_activities"):
-                st.header("Activities")
-
-                st.selectbox(
-                    label="Your name",
-                    key="activity_user",
-                    options=st.session_state[f"users_{self.claan.name}"],
-                    format_func=lambda user: user.name,
-                )
-
-                st.radio(
-                    label="Activities",
-                    options=st.session_state["active_activity"],
-                    format_func=lambda task: f"{task.dice.name}: {task.description}",
-                    key="activity_selection",
-                )
-
-                st.form_submit_button(
-                    label="Submit",
-                    on_click=data.submit_record,
-                    kwargs={
-                        "_session": Database.get_session(),
-                        "task_type": TaskType.ACTIVITY,
-                    },
-                )
+            with col_portfolio:
+                st.session_state["portfolio"] = portfolio = st.session_state[
+                    f"portfolios_{self.claan.name}"
+                ][user.id]
+                with st.form(key="form_activities"):
+                    st.header("Wallet")
+                    st.metric(
+                        label="Wallet Cash", value=f"${round(portfolio.cash or 0.0, 2)}"
+                    )
+                    st.radio(
+                        label="Board Vote",
+                        key="portfolio_vote",
+                        options=list(BoardVote),
+                        format_func=lambda vote_type: vote_type.name.title(),
+                    )
+                    st.form_submit_button(
+                        label="Update Vote",
+                        on_click=data.update_vote,
+                        kwargs={
+                            "_session": Database.get_session(),
+                            "_portfolio": portfolio,
+                        },
+                    )
 
         with st.expander("Record History"):
             if st.button(

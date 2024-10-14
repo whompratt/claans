@@ -3,21 +3,20 @@ from math import floor
 from typing import Dict, List, Optional
 
 import streamlit as st
-from sqlalchemy import delete, func, select
-from sqlalchemy.orm import Session, aliased
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
 
 from src.models.claan import Claan
-from src.models.dice import Dice
-from src.models.murder import Murder
+from src.models.market.portfolio import Portfolio
 from src.models.record import Record
 from src.models.season import Season
-from src.models.task import Task, TaskType
+from src.models.task import Task
+from src.models.task_reward import TaskReward
 from src.models.user import User
+from src.utils import stock_game
 from src.utils.logger import LOGGER
-from src.utils.timer import timer
 
 
-@timer
 @st.cache_data(ttl=600)
 def get_scores(_session: Session) -> List[Record]:
     season_start = get_season_start(_session=_session)
@@ -36,7 +35,6 @@ def get_scores(_session: Session) -> List[Record]:
     return scores
 
 
-@timer
 @st.cache_data(ttl=600)
 def get_claan_data(_session: Session, claan: Claan):
     """Returns some stats about the given Claan.
@@ -61,28 +59,21 @@ def get_claan_data(_session: Session, claan: Claan):
         .join(Record.task)
         .where(Record.claan == claan)
     )
-    count_quest = _session.execute(
-        query_count.where(Task.task_type == TaskType.QUEST)
-    ).scalar_one_or_none()
-    count_activity = _session.execute(
-        query_count.where(Task.task_type == TaskType.ACTIVITY)
-    ).scalar_one_or_none()
+    count = _session.execute(query_count).scalar_one_or_none()
 
     return {
         "score_season": score_season or 0,
         "score_fortnight": score_fortnight or 0,
-        "count_quest": count_quest or 0,
-        "count_activity": count_activity or 0,
+        "task_count": count or 0,
     }
 
 
-@timer
 @st.cache_data
 def get_historical_data(_session: Session, claan: Claan) -> None:
     season_start = get_season_start(_session=_session)
 
     query = (
-        select(User.name, Task.description, Task.dice, Record.score, Record.timestamp)
+        select(User.name, Task.description, Task.reward, Record.score, Record.timestamp)
         .join(Record.user)
         .join(Record.task)
         .where(Record.claan == claan)
@@ -94,29 +85,25 @@ def get_historical_data(_session: Session, claan: Claan) -> None:
     return records
 
 
-@timer
 @st.cache_data()
 def get_tasks(_session: Session) -> List[Task]:
-    query = select(Task).order_by(Task.dice.asc()).order_by(Task.task_type.desc())
+    query = select(Task).order_by(Task.reward.asc())
     result = _session.execute(query).scalars().all()
 
     return result
 
 
-@timer
 @st.cache_data()
-def get_active_tasks(_session: Session, task_type: TaskType) -> List[Task]:
-    query = select(Task).where(Task.active, Task.task_type == task_type)
+def get_active_tasks(_session: Session) -> List[Task]:
+    query = select(Task).where(Task.active).order_by(Task.reward)
     result = _session.execute(query).scalars().all()
 
     return result
 
 
-@timer
 def add_task(_session: Session) -> Task:
     if st.session_state.keys() < {
         "add_task_description",
-        "add_task_type",
         "add_task_dice",
         "add_task_ephemeral",
     }:
@@ -125,27 +112,25 @@ def add_task(_session: Session) -> Task:
         return
 
     task_description = st.session_state["add_task_description"]
-    task_type = st.session_state["add_task_type"]
     task_dice = st.session_state["add_task_dice"]
     task_ephemeral = st.session_state["add_task_ephemeral"]
 
     task = Task(
         description=task_description,
-        task_type=task_type,
-        dice=task_dice,
+        reward=task_dice,
         ephemeral=task_ephemeral,
     )
 
     _session.add(task)
     _session.commit()
 
-    get_tasks.clear()
-    st.session_state["tasks"] = get_tasks(_session=_session)
+    if "tasks" in st.session_state:
+        get_tasks.clear()
+        st.session_state["tasks"] = get_tasks(_session=_session)
 
     return task
 
 
-@timer
 def delete_task(_session: Session) -> None:
     if st.session_state.keys() < {"delete_task_selection"}:
         LOGGER.error("`delete_task` called but no task in session state")
@@ -157,29 +142,19 @@ def delete_task(_session: Session) -> None:
     _session.delete(task)
     _session.commit()
 
-    get_tasks.clear()
-    st.session_state["tasks"] = get_users(_session=_session)
+    if "tasks" in st.session_state:
+        get_tasks.clear()
+        st.session_state["tasks"] = get_users(_session=_session)
 
-    if "active_quest" in st.session_state and task in st.session_state["active_quest"]:
-        get_active_tasks.clear(task_type=TaskType.QUEST)
-        st.session_state["active_quest"] = get_active_tasks(
-            _session=_session, task_type=TaskType.QUEST
-        )
-    if (
-        "active_activity" in st.session_state
-        and task in st.session_state["active_activity"]
-    ):
-        get_active_tasks.clear(task_type=TaskType.ACTIVITY)
-        st.session_state["active_activity"] = get_active_tasks(
-            _session=_session, task_type=TaskType.ACTIVITY
-        )
+    if "active_task" in st.session_state and task in st.session_state["active_quest"]:
+        get_active_tasks.clear()
+        st.session_state["active_quest"] = get_active_tasks(_session=_session)
 
 
-@timer
-def set_active_task(_session: Session, task_type: TaskType) -> None:
+def set_active_task(_session: Session) -> None:
     if st.session_state.keys() < {
-        f"set_active_{task_type.value}_selection",
-        f"set_active_{task_type.value}_dice",
+        "set_active_task_selection",
+        "set_active_task_reward",
     }:
         LOGGER.error("`set_active_task` called but required keys not in session state")
         st.warning("Unable to set active task, missing keys in session state.")
@@ -187,18 +162,11 @@ def set_active_task(_session: Session, task_type: TaskType) -> None:
 
     query = (
         select(Task)
-        .filter_by(
-            task_type=task_type,
-            dice=st.session_state[f"set_active_{task_type.value}_dice"],
-            active=True,
-        )
-        .limit(1)
+        .where(Task.active)
+        .where(Task.reward == st.session_state["set_active_task_reward"])
     )
-    LOGGER.warning(st.session_state[f"set_active_{task_type.value}_selection"].id)
     task_current = _session.execute(query).scalar_one_or_none()
-    task_new = _session.get(
-        Task, st.session_state[f"set_active_{task_type.value}_selection"].id
-    )
+    task_new = _session.get(Task, st.session_state["set_active_task_selection"].id)
 
     if task_current is not None:
         task_current.active = False
@@ -206,18 +174,16 @@ def set_active_task(_session: Session, task_type: TaskType) -> None:
 
     _session.commit()
 
-    LOGGER.info("Reloading `tasks`")
-    get_tasks.clear()
-    st.session_state["tasks"] = get_tasks(_session=_session)
+    if "active_tasks" in st.session_state:
+        LOGGER.info("Reloading `active_tasks`")
+        get_active_tasks.clear()
+        st.session_state["active_tasks"] = get_active_tasks(_session=_session)
+    if "tasks" in st.session_state:
+        LOGGER.info("Reloading `tasks`")
+        get_tasks.clear()
+        st.session_state["tasks"] = get_tasks(_session=_session)
 
-    LOGGER.info(f"Reloading `active_{task_type.value}")
-    get_active_tasks.clear(task_type=task_type)
-    st.session_state[f"active_{task_type.value}"] = get_active_tasks(
-        _session=_session, task_type=task_type
-    )
 
-
-@timer
 @st.cache_data(ttl=timedelta(weeks=2))
 def get_season_start(_session: Session) -> date:
     query = select(func.max(Season.start_date))
@@ -227,7 +193,6 @@ def get_season_start(_session: Session) -> date:
 
 
 # TODO: Docstring
-@timer
 @st.cache_data(ttl=timedelta(days=1))
 def get_fortnight_number(
     _session: Session,
@@ -252,7 +217,6 @@ def get_fortnight_number(
 
 
 @st.cache_data(ttl=timedelta(days=1))
-@timer
 def get_fortnight_start(
     _session: Session,
     timestamp: Optional[date] = None,
@@ -274,7 +238,6 @@ def get_fortnight_start(
 
 
 @st.cache_data(ttl=timedelta(days=1))
-@timer
 def get_fortnight_info(_session: Session) -> Dict[str, int | date]:
     """Returns a dict containing fortnight information.
 
@@ -296,11 +259,10 @@ def get_fortnight_info(_session: Session) -> Dict[str, int | date]:
     }
 
 
-@timer
-def submit_record(_session: Session, task_type: TaskType) -> Record:
+def submit_record(_session: Session) -> Record:
     if st.session_state.keys() < {
-        f"{task_type.value}_user",
-        f"{task_type.value}_selection",
+        "task_user",
+        "task_selection",
     }:
         LOGGER.error("`submit_record` called but required keys not in session state")
         st.warning(
@@ -308,19 +270,19 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
         )
         return
 
-    record_claan = st.session_state[f"{task_type.value}_user"].claan
-    record_dice = st.session_state[f"{task_type.value}_selection"].dice
+    record_claan = st.session_state["task_user"].claan
+    record_dice = st.session_state["task_selection"].dice
 
     record = Record(
-        task=st.session_state[f"{task_type.value}_selection"],
-        user=st.session_state[f"{task_type.value}_user"],
+        task=st.session_state["task_selection"],
+        user=st.session_state["task_user"],
         claan=record_claan,
-        dice=record_dice,
+        reward=record_dice,
     )
 
     # Fortnightly quest
     result = None
-    if record_dice == Dice.D12:
+    if record_dice == TaskReward.D12:
         season_start = get_season_start(_session=_session)
         fortnight_number = get_fortnight_number(_session=_session)
         query = (
@@ -357,31 +319,30 @@ def submit_record(_session: Session, task_type: TaskType) -> Record:
 
     st.success(f"Task logged! Roll: {record.score}")
 
-    LOGGER.info("Reloading `scores`")
-    get_scores.clear()
-    st.session_state["scores"] = get_scores(_session=_session)
+    if "scores" in st.session_state:
+        LOGGER.info("Reloading `scores`")
+        get_scores.clear()
+        st.session_state["scores"] = get_scores(_session=_session)
 
     if f"data_{record_claan.name}" in st.session_state:
         LOGGER.info("Reloading `data`")
-        get_claan_data.clear(claan=record_claan)
-        st.session_state[f"data_{record_claan.name}"] = get_claan_data(
+        stock_game.get_corporate_data.clear(claan=record_claan)
+        st.session_state[f"data_{record_claan.name}"] = stock_game.get_corporate_data(
             _session=_session, claan=record_claan
         )
 
     return record
 
 
-@timer
 @st.cache_data()
 def get_users(_session: Session) -> List[User]:
-    query = select(User)
+    query = select(User).order_by(User.name.asc())
     result = _session.execute(query).scalars().all()
 
     return result
 
 
 # TODO: Add claan table with backpopulated users field and populate this way?
-@timer
 @st.cache_data()
 def get_claan_users(_session: Session, claan: Claan) -> List[User]:
     query = select(User).where(User.claan == claan)
@@ -390,7 +351,20 @@ def get_claan_users(_session: Session, claan: Claan) -> List[User]:
     return result
 
 
-@timer
+def get_portfolio(_session: Session, _user: User) -> Portfolio:
+    portfolio_query = select(Portfolio).where(Portfolio.user_id == _user.id)
+    portfolio = _session.execute(portfolio_query).scalars().one()
+
+    return portfolio
+
+
+def update_vote(_session: Session, _portfolio: Portfolio) -> None:
+    portfolio = _session.get(Portfolio, _portfolio.id)
+    portfolio.board_vote = st.session_state["portfolio_vote"]
+    _session.commit()
+    st.toast("Vote updated")
+
+
 def add_user(_session: Session) -> User:
     if st.session_state.keys() < {"add_user_name", "add_user_claan"}:
         LOGGER.error("`add_user` called but required keys not in session state")
@@ -405,21 +379,64 @@ def add_user(_session: Session) -> User:
     _session.add(user)
     _session.commit()
 
-    LOGGER.info("Reloading `users`")
-    get_users.clear()
-    st.session_state["users"] = get_users(_session=_session)
+    if "users" in st.session_state:
+        LOGGER.info("Reloading `users`")
+        get_users.clear()
+        st.session_state["users"] = get_users(_session=_session)
 
-    LOGGER.info(f"Reloading `users_{user.claan.name}`")
-    get_claan_users.clear(claan=user.claan)
     if f"users_{user.claan.name}" in st.session_state:
-        st.session_state[f"users_{user.claan.name}"] = get_claan_users(
-            _session=_session, claan=user.claan
-        )
+        LOGGER.info(f"Reloading `users_{user.claan.name}`")
+        get_claan_users.clear(claan=user.claan)
+        if f"users_{user.claan.name}" in st.session_state:
+            st.session_state[f"users_{user.claan.name}"] = get_claan_users(
+                _session=_session, claan=user.claan
+            )
 
     return user
 
 
-@timer
+def update_user(_session: Session) -> User:
+    if st.session_state.keys() < {
+        "update_user_user",
+        "update_user_name",
+        "update_user_long_name",
+        "update_user_id",
+        "update_user_claan",
+        "update_user_email",
+        "update_user_active",
+    }:
+        LOGGER.error("`update_user` called but key contents were missing.")
+        st.warning(
+            "Unable to update user, as keys were missing from the session state."
+        )
+        return
+
+    user = _session.get(User, st.session_state["update_user_id"])
+
+    user.long_name = st.session_state["update_user_long_name"]
+    user.name = st.session_state["update_user_name"]
+    user.email = st.session_state["update_user_email"]
+    user.claan = st.session_state["update_user_claan"]
+    user.active = st.session_state["update_user_active"]
+
+    _session.commit()
+
+    if "users" in st.session_state:
+        LOGGER.info("Reloading `users`")
+        get_users.clear()
+        st.session_state["users"] = get_users(_session=_session)
+
+    if f"users_{st.session_state["update_user_claan"].name}" in st.session_state:
+        LOGGER.info(f"Reload `users_{st.session_state["update_user_claan"].name}")
+        get_claan_users.clear(claan=st.session_state["update_user_claan"])
+        if f"users_{st.session_state["update_user_claan"]}" in st.session_state:
+            st.session_state[f"users_{st.session_state["update_user_claan"]}"] = (
+                get_claan_users(
+                    _session=_session, claan=st.session_state["update_user_claan"]
+                )
+            )
+
+
 def delete_user(_session: Session) -> None:
     if st.session_state.keys() < {"delete_user_selection"}:
         LOGGER.error("`delete_user` called but no user in session state")
@@ -431,127 +448,14 @@ def delete_user(_session: Session) -> None:
     _session.delete(user)
     _session.commit()
 
-    LOGGER.info("Reloading `users`")
-    get_users.clear()
-    st.session_state["users"] = get_users(_session=_session)
+    if "users" in st.session_state:
+        LOGGER.info("Reloading `users`")
+        get_users.clear()
+        st.session_state["users"] = get_users(_session=_session)
 
-    LOGGER.info(f"Reloading `users_{target.claan.name}`")
-    get_claan_users.clear(claan=target.claan)
     if f"users_{target.claan.name}" in st.session_state:
+        LOGGER.info(f"Reloading `users_{target.claan.name}`")
+        get_claan_users.clear(claan=target.claan)
         st.session_state[f"users_{target.claan.name}"] = get_claan_users(
             _session=_session, claan=target.claan
         )
-
-
-def get_hit_list(_session: Session) -> List[Murder]:
-    users_agent = aliased(User)
-    users_target = aliased(User)
-    query = (
-        select(
-            Murder.id,
-            Murder.task,
-            users_agent.id.label("agent_id"),
-            users_agent.name.label("agent_name"),
-            users_target.id.label("target_id"),
-            users_target.name.label("target_name"),
-        )
-        .join(users_agent, onclause=Murder.agent_id == users_agent.id)
-        .join(users_target, onclause=Murder.target_id == users_target.id)
-        .order_by(users_agent.name.asc())
-    )
-    result = _session.execute(query).all()
-
-    return result
-
-
-def get_agent_info(_session: Session) -> None:
-    query = select(Murder).where(
-        Murder.agent_id == st.session_state["murder_agent"].agent_id
-    )
-    result = _session.execute(query).scalar_one()
-
-    st.session_state["agent_info"] = {
-        "agent": {
-            "id": result.agent_id,
-            "user": result.agent,
-        },
-        "target": {
-            "id": result.target_id,
-            "user": result.target,
-        },
-        "task": result.task,
-    }
-
-
-def confirm_kill(_session: Session) -> None:
-    agent_info = st.session_state["agent_info"]
-
-    agent = agent_info["agent"]["user"]
-    target = agent_info["target"]["user"]
-
-    this_row = _session.execute(
-        select(Murder).where(Murder.agent == agent)
-    ).scalar_one()
-    next_row = _session.execute(
-        select(Murder).where(Murder.agent == target)
-    ).scalar_one()
-
-    this_row.target_id = next_row.target_id
-    this_row.target = next_row.target
-    this_row.task = next_row.task
-
-    # Delete target's old assignment
-    _session.execute(delete(Murder).where(Murder.agent == next_row.agent))
-
-    # Submit record for successful kill
-    murder_task_query = select(Task).where(Task.description == "MURDER")
-    murder_task = _session.execute(murder_task_query).scalar_one()
-
-    murder_record = Record(
-        murder_task,
-        agent,
-        agent.claan,
-        Dice.D4,
-    )
-    _session.add(murder_record)
-
-    _session.commit()
-
-    try:
-        get_scores.clear()
-        st.session_state["scores"] = get_scores(_session=_session)
-    except Exception as e:
-        LOGGER.warning(f"Error clearing cache for 'get_scores' - {e}")
-    try:
-        get_claan_data.clear()
-        for claan in Claan:
-            st.session_state[f"data_{claan.name}"] = get_claan_data(
-                _session=_session, claan=claan
-            )
-    except Exception as e:
-        LOGGER.warning(f"Error clearing cache for 'get_claan_data' - {e}")
-
-    get_agent_info(_session=_session)
-
-
-def cycle_target(_session: Session) -> None:
-    agent_info = st.session_state["agent_info"]
-
-    agent = agent_info["agent"]["user"]
-    target = agent_info["target"]["user"]
-
-    this_row = _session.execute(
-        select(Murder).where(Murder.agent == agent)
-    ).scalar_one()
-    next_row = _session.execute(
-        select(Murder).where(Murder.agent == target)
-    ).scalar_one()
-
-    this_row.target_id = next_row.target_id
-    this_row.target = next_row.target
-    this_row.task = next_row.task
-
-    _session.execute(delete(Murder).where(Murder.agent == next_row.agent))
-    _session.commit()
-
-    get_agent_info(_session=_session)
