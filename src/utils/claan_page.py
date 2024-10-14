@@ -17,6 +17,7 @@ from src.utils.data.stocks import (
 from src.utils.data.tasks import get_active_tasks
 from src.utils.data.users import get_claan_users
 from src.utils.database import Database
+from src.utils.logger import LOGGER
 
 
 class ClaanPage:
@@ -40,38 +41,46 @@ class ClaanPage:
 
         with Database.get_session() as session:
             if "active_tasks" not in st.session_state:
+                LOGGER.info("Loading `active_tasks`")
                 st.session_state["active_tasks"] = get_active_tasks(_session=session)
             if f"users_{self.claan.name}" not in st.session_state:
                 st.session_state[f"users_{self.claan.name}"] = get_claan_users(
                     _session=session, claan=self.claan
                 )
             if f"portfolios_{self.claan.name}" not in st.session_state:
+                LOGGER.info(f"Loading `portfolios_{self.claan.name}`")
                 st.session_state[f"portfolios_{self.claan.name}"] = {
-                    user.id: get_portfolio(session, user)
+                    user.id: get_portfolio(session, user_id=user.id)
                     for user in st.session_state[f"users_{self.claan.name}"]
                 }
             if f"shares_{self.claan.name}" not in st.session_state:
+                LOGGER.info(f"Loading `shares_{self.claan.name}`")
                 st.session_state[f"shares_{self.claan.name}"] = {
-                    portfolio.id: get_shares(session, portfolio)
+                    portfolio.id: get_shares(session, portfolio.id)
                     for _, portfolio in st.session_state[
                         f"portfolios_{self.claan.name}"
                     ].items()
                 }
             if f"ipo_{self.claan.name}" not in st.session_state:
+                LOGGER.info(f"Loading `ipo_{self.claan.name}`")
                 st.session_state[f"ipo_{self.claan.name}"] = get_ipo_count(
                     session, self.claan
                 )
             if "scores" not in st.session_state:
+                LOGGER.info("Loading `scores`")
                 st.session_state["scores"] = get_scores(_session=session)
             if f"data_{self.claan.name}" not in st.session_state:
+                LOGGER.info(f"Loading `data_{self.claan.name}`")
                 st.session_state[f"data_{self.claan.name}"] = get_corporate_data(
                     _session=session, claan=self.claan
                 )
             if f"historical_{self.claan.name}" not in st.session_state:
+                LOGGER.info(f"Loading `historical_{self.claan.name}`")
                 st.session_state[f"historical_{self.claan.name}"] = get_historical_data(
                     _session=session, claan=self.claan
                 )
             if "fortnight_info" not in st.session_state:
+                LOGGER.info("Loading `fortnight_info`")
                 st.session_state["fortnight_info"] = get_fortnight_info(
                     _session=session
                 )
