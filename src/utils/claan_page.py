@@ -5,7 +5,17 @@ import streamlit as st
 
 from src.models.claan import Claan
 from src.models.market.portfolio import BoardVote
-from src.utils import data, stock_game
+from src.utils.data.scores import get_historical_data, get_scores, submit_record
+from src.utils.data.seasons import get_fortnight_info
+from src.utils.data.stocks import (
+    get_corporate_data,
+    get_ipo_count,
+    get_portfolio,
+    get_shares,
+    update_vote,
+)
+from src.utils.data.tasks import get_active_tasks
+from src.utils.data.users import get_claan_users
 from src.utils.database import Database
 
 
@@ -30,31 +40,39 @@ class ClaanPage:
 
         with Database.get_session() as session:
             if "active_tasks" not in st.session_state:
-                st.session_state["active_tasks"] = data.get_active_tasks(
-                    _session=session
-                )
-            st.write(f"Active tasks: {len(st.session_state["active_tasks"])}")
+                st.session_state["active_tasks"] = get_active_tasks(_session=session)
             if f"users_{self.claan.name}" not in st.session_state:
-                st.session_state[f"users_{self.claan.name}"] = data.get_claan_users(
+                st.session_state[f"users_{self.claan.name}"] = get_claan_users(
                     _session=session, claan=self.claan
                 )
             if f"portfolios_{self.claan.name}" not in st.session_state:
                 st.session_state[f"portfolios_{self.claan.name}"] = {
-                    user.id: data.get_portfolio(session, user)
+                    user.id: get_portfolio(session, user)
                     for user in st.session_state[f"users_{self.claan.name}"]
                 }
+            if f"shares_{self.claan.name}" not in st.session_state:
+                st.session_state[f"shares_{self.claan.name}"] = {
+                    portfolio.id: get_shares(session, portfolio)
+                    for _, portfolio in st.session_state[
+                        f"portfolios_{self.claan.name}"
+                    ].items()
+                }
+            if f"ipo_{self.claan.name}" not in st.session_state:
+                st.session_state[f"ipo_{self.claan.name}"] = get_ipo_count(
+                    session, self.claan
+                )
             if "scores" not in st.session_state:
-                st.session_state["scores"] = data.get_scores(_session=session)
+                st.session_state["scores"] = get_scores(_session=session)
             if f"data_{self.claan.name}" not in st.session_state:
-                st.session_state[f"data_{self.claan.name}"] = (
-                    stock_game.get_corporate_data(_session=session, claan=self.claan)
+                st.session_state[f"data_{self.claan.name}"] = get_corporate_data(
+                    _session=session, claan=self.claan
                 )
             if f"historical_{self.claan.name}" not in st.session_state:
-                st.session_state[f"historical_{self.claan.name}"] = (
-                    data.get_historical_data(_session=session, claan=self.claan)
+                st.session_state[f"historical_{self.claan.name}"] = get_historical_data(
+                    _session=session, claan=self.claan
                 )
             if "fortnight_info" not in st.session_state:
-                st.session_state["fortnight_info"] = data.get_fortnight_info(
+                st.session_state["fortnight_info"] = get_fortnight_info(
                     _session=session
                 )
             session.expunge_all()
@@ -134,9 +152,13 @@ class ClaanPage:
                         label="Ends",
                         value=str(st.session_state["fortnight_info"].get("end_date")),
                     )
+                with col_4:
+                    st.metric(
+                        "Share in IPO", value=st.session_state[f"ipo_{self.claan.name}"]
+                    )
             with header_right:
                 claan_img = pathlib.Path(
-                    f"./assets/images/{self.claan.name.lower()}_hex.png"
+                    f"./assets/images/{self.claan.name.lower()}.png"
                 )
                 if claan_img.exists():
                     st.image(str(claan_img))
@@ -167,7 +189,7 @@ class ClaanPage:
 
                     st.form_submit_button(
                         label="Submit",
-                        on_click=data.submit_record,
+                        on_click=submit_record,
                         kwargs={
                             "_session": Database.get_session(),
                         },
@@ -190,11 +212,21 @@ class ClaanPage:
                     )
                     st.form_submit_button(
                         label="Update Vote",
-                        on_click=data.update_vote,
+                        on_click=update_vote,
                         kwargs={
                             "_session": Database.get_session(),
                             "_portfolio": portfolio,
                         },
+                    )
+                    df_shares = pd.DataFrame.from_records(
+                        data=st.session_state[f"shares_{self.claan.name}"][portfolio.id]
+                    )
+                    if "_sa_instance_state" in df_shares.columns:
+                        df_shares.drop("_sa_instance_state", inplace=True, axis=1)
+                    if "claan" in df_shares.columns:
+                        df_shares["claan"] = df_shares["claan"].apply(lambda x: x.value)
+                    st.dataframe(
+                        data=df_shares, use_container_width=True, hide_index=True
                     )
 
         with st.expander("Record History"):
@@ -203,21 +235,21 @@ class ClaanPage:
                 key="history_button_refresh",
                 help="Click to refresh historical data",
             ):
-                data.get_historical_data.clear(claan=self.claan)
-                st.session_state[f"historical_{self.claan.name}"] = (
-                    data.get_historical_data(
-                        _session=Database.get_session(), claan=self.claan
-                    )
+                get_historical_data(claan=self.claan)
+                st.session_state[f"historical_{self.claan.name}"] = get_historical_data(
+                    _session=Database.get_session(), claan=self.claan
                 )
 
             df_historical = pd.DataFrame.from_records(
-                columns=("Name", "Task", "Dice", "Score", "Timestamp"),
+                columns=("Name", "Task", "Reward", "Timestamp"),
                 data=st.session_state[f"historical_{self.claan.name}"],
             )
             if "_sa_instance_state" in df_historical.columns:
                 df_historical.drop("_sa_instance_state", inplace=True, axis=1)
-            if "Dice" in df_historical.columns:
-                df_historical["Dice"] = df_historical["Dice"].apply(lambda x: x.name)
+            if "Reward" in df_historical.columns:
+                df_historical["Reward"] = df_historical["Reward"].apply(
+                    lambda x: f"${x}"
+                )
 
             st.dataframe(
                 data=df_historical,

@@ -17,7 +17,6 @@ class Instrument(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     price: Mapped[float] = mapped_column(nullable=False, default=10.0)
-    ipo: Mapped[int] = mapped_column(nullable=False, default=100)
     enabled: Mapped[bool] = mapped_column(nullable=False, default=False)
 
     company_id: Mapped[int] = mapped_column(

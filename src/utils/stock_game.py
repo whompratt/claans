@@ -1,146 +1,11 @@
-from typing import Dict, List
-
-import streamlit as st
 from sqlalchemy import func, select
-from sqlalchemy.orm import Session
 
 from src.models.base import Base
 from src.models.claan import Claan
-from src.models.market.company import Company
-from src.models.market.instrument import Instrument
-from src.models.market.portfolio import BoardVote, Portfolio
-from src.models.market.share import Share
-from src.models.market.transaction import Transaction
-from src.models.record import Record
-from src.models.task import Task
 from src.models.user import User
+from src.utils.data.stocks import issue_share
 from src.utils.database import Database
 from src.utils.logger import LOGGER
-
-
-class ShareAlreadyOwnedError(Exception):
-    pass
-
-
-class ShareNotOwnedError(Exception):
-    pass
-
-
-class CannotAffordError(Exception):
-    pass
-
-
-def process_escrow(_session: Session) -> None:
-    companies_query = select(Company)
-    companies = _session.execute(companies_query).scalars().all()
-
-    for company in companies:
-        portfolios_query = select(
-            Portfolio.board_vote.label("vote"), func.count(Portfolio.id).label("count")
-        ).group_by(Portfolio.board_vote)
-        votes = _session.execute(portfolios_query).all()
-
-        results = {vote_type: 0 for vote_type in BoardVote}
-
-        for vote in votes:
-            (vote_type, count) = vote._tuple()
-            results[vote_type] = count
-
-        if results[BoardVote.PAYOUT] >= results[BoardVote.WITHOLD]:
-            payout(_session)
-        else:
-            withold(_session)
-
-
-def payout(_session: Session) -> None:
-    LOGGER.info("Board voted to payout")
-    pass
-
-
-def withold(_session: Session) -> None:
-    LOGGER.info("Board voted to withold")
-    pass
-
-
-@st.cache_data(ttl=600)
-def get_corporate_data(_session: Session, claan: Claan) -> Dict[str, float]:
-    company_query = select(Company).where(Company.claan == claan)
-    company = _session.execute(company_query).scalar_one()
-
-    funds_query = (
-        select(func.sum(Transaction.value))
-        .select_from(Transaction)
-        .where(Transaction.company_id == company.id)
-    )
-    funds = _session.execute(funds_query).scalar_one()
-
-    escrow_query = select(func.sum(Record.score)).where(Record.claan == company.claan)
-    escrow = _session.execute(escrow_query).scalar_one()
-
-    quests_query = select(func.count()).select_from(Record).join(Task)
-    quests = _session.execute(quests_query).scalar_one()
-
-    return {
-        "funds": funds,
-        "escrow": escrow,
-        "task_count": quests,
-    }
-
-
-def get_shares_for_sale(_session: Session, instrument: Instrument) -> List[Share]:
-    share_query = select(Share).where(not Share.owner_id)
-    shares = _session.execute(share_query).scalars().all()
-
-    return shares
-
-
-def buy_share(_session: Session, share: Share, portfolio: Portfolio) -> None:
-    instrument_query = select(Instrument).where(Instrument.id == share.instrument_id)
-    instrument = _session.execute(instrument_query).scalars().one()
-
-    if share not in _session:
-        share = _session.get(Share, share.id)
-
-    if share.owner_id:
-        raise ShareAlreadyOwnedError
-
-    if portfolio not in _session:
-        portfolio = _session.get(Portfolio, portfolio.id)
-
-    if portfolio.cash < instrument.price:
-        raise CannotAffordError
-
-    # TODO: Check ownership limits
-    # TODO: Check and deduct cash
-
-    with _session.begin_nested():
-        if instrument.ipo > 0:
-            instrument.ipo -= 1
-
-        share.owner_id = portfolio.id
-        portfolio.cash -= instrument.price
-
-    _session.commit()
-
-
-def sell_share(_session: Session, share: Share, portfolio: Portfolio) -> None:
-    instrument_query = select(Instrument).where(Instrument.id == share.instrument_id)
-    instrument = _session.execute(instrument_query).scalars().one()
-
-    if share not in _session:
-        share = _session.get(Share, share.id)
-
-    if share.owner_id != portfolio.id:
-        raise ShareNotOwnedError
-
-    if portfolio not in _session:
-        portfolio = _session.get(Portfolio, portfolio.id)
-
-    with _session.begin_nested():
-        share.owner_id = None
-        portfolio.cash += instrument.price
-
-    _session.commit()
 
 
 def main():
@@ -201,7 +66,7 @@ def main():
                 )
                 shares_count = session.execute(shares_query).scalar_one()
 
-                for _ in range(0, 100 - shares_count):
+                for _ in range(0, 50 - shares_count):
                     new_shares.append(Share(instrument=instrument, owner=None))
 
             session.add_all(new_shares)
@@ -228,10 +93,24 @@ def main():
             session.add_all(new_portfolios)
             transaction.commit()
 
-        ## Test Escrow Processing
-        with session.begin_nested():
-            LOGGER.info("Testing processing of escrow")
-            process_escrow(_session=session)
+        ## Issue shares to board members
+        with session.begin_nested() as transaction:
+            LOGGER.info("Issuing starting shares")
+            query = (
+                select(Portfolio, User, func.count(Share.id).label("count"))
+                .select_from(Portfolio)
+                .join(User)
+                .join(Share, isouter=True)
+                .group_by(Portfolio, User)
+            )
+            result = session.execute(query).scalars().all()
+
+            for portfolio in result:
+                if len(portfolio.shares) < 2:
+                    for _ in range(0, 2 - len(portfolio.shares)):
+                        LOGGER.info(f"Issuing share to user {portfolio.user.name}")
+                        with session.begin_nested():
+                            issue_share(_session=session, portfolio=portfolio)
 
         # ### Disabled currently as users will start with 0 dollars ###
         # ## Grant starting funds to users with no transactions
