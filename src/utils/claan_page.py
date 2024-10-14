@@ -213,11 +213,15 @@ class ClaanPage:
                     st.metric(
                         label="Wallet Cash", value=f"${round(portfolio.cash or 0.0, 2)}"
                     )
+                    st.metric(
+                        label="Current Vote", value=portfolio.board_vote.name.title()
+                    )
                     st.radio(
                         label="Board Vote",
                         key="portfolio_vote",
                         options=list(BoardVote),
                         format_func=lambda vote_type: vote_type.name.title(),
+                        index=list(BoardVote).index(portfolio.board_vote),
                     )
                     st.form_submit_button(
                         label="Update Vote",
@@ -225,6 +229,7 @@ class ClaanPage:
                         kwargs={
                             "_session": Database.get_session(),
                             "_portfolio": portfolio,
+                            "_claan": self.claan,
                         },
                     )
                     df_shares = pd.DataFrame.from_records(
