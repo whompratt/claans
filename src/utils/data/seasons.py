@@ -17,7 +17,6 @@ def get_season_start(_session: Session) -> date:
     return result
 
 
-# TODO: Docstring
 @st.cache_data(ttl=timedelta(days=1))
 def get_fortnight_number(
     _session: Session,
