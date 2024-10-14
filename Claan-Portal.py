@@ -6,6 +6,7 @@ from src.models.claan import Claan
 from src.utils.data.scores import get_scores
 from src.utils.data.stocks import get_corporate_data
 from src.utils.database import Database
+from src.utils.logger import LOGGER
 
 
 def init_page() -> None:
@@ -22,9 +23,11 @@ def init_page() -> None:
 
     with Database.get_session() as session:
         if "scores" not in st.session_state:
+            LOGGER.info("Loading `scores`")
             st.session_state["scores"] = get_scores(_session=session)
         for claan in Claan:
             if f"data_{claan.name}" not in st.session_state:
+                LOGGER.info(f"Loading `data_{claan.name}`")
                 st.session_state[f"data_{claan.name}"] = get_corporate_data(
                     _session=session, claan=claan
                 )

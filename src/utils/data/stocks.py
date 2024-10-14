@@ -12,7 +12,6 @@ from src.models.market.share import Share
 from src.models.market.transaction import Transaction
 from src.models.record import Record
 from src.models.task import Task
-from src.models.user import User
 from src.utils.logger import LOGGER
 
 
@@ -28,8 +27,9 @@ class CannotAffordError(Exception):
     pass
 
 
-def get_portfolio(_session: Session, _user: User) -> Portfolio:
-    portfolio_query = select(Portfolio).where(Portfolio.user_id == _user.id)
+@st.cache_data(ttl=600)
+def get_portfolio(_session: Session, user_id: int) -> Portfolio:
+    portfolio_query = select(Portfolio).where(Portfolio.user_id == user_id)
     portfolio = _session.execute(portfolio_query).scalars().one()
 
     return portfolio
@@ -73,13 +73,14 @@ def get_corporate_data(_session: Session, claan: Claan) -> Dict[str, float]:
     }
 
 
-def get_shares(_session: Session, portfolio: Portfolio) -> List[Share]:
+@st.cache_data(ttl=600)
+def get_shares(_session: Session, portfolio_id: int) -> List[Share]:
     shares_query = (
         select(Share, Instrument, Company)
         .select_from(Share)
         .join(Instrument)
         .join(Company)
-        .where(Share.owner_id == portfolio.id)
+        .where(Share.owner_id == portfolio_id)
     )
     shares = _session.execute(shares_query).scalars().all()
 
@@ -118,17 +119,19 @@ def issue_share(_session: Session, portfolio: Portfolio) -> None:
         _session.commit()
 
 
-def get_shares_for_sale(_session: Session, instrument: Instrument) -> List[Share]:
+@st.cache_data(ttl=600)
+def get_shares_for_sale(_session: Session, instrument_id: int) -> List[Share]:
     share_query = (
         select(Share)
         .where(not Share.owner_id)
-        .where(Share.instrument_id == instrument.id)
+        .where(Share.instrument_id == instrument_id)
     )
     shares = _session.execute(share_query).scalars().all()
 
     return shares
 
 
+@st.cache_data(ttl=600)
 def get_ipo_count(_session: Session, claan: Claan) -> int:
     ipo_query = (
         select(func.count(Share.ipo))
