@@ -139,9 +139,8 @@ class ClaanPage:
                     )
                     st.metric(
                         label="Fortnight Number",
-                        value=st.session_state["fortnight_info"].get(
-                            "fortnight_number"
-                        ),
+                        value=st.session_state["fortnight_info"].get("fortnight_number")
+                        + 1,
                     )
                 with col_2:
                     st.metric(
@@ -249,7 +248,7 @@ class ClaanPage:
                 key="history_button_refresh",
                 help="Click to refresh historical data",
             ):
-                get_historical_data(claan=self.claan)
+                get_historical_data.clear(claan=self.claan)
                 st.session_state[f"historical_{self.claan.name}"] = get_historical_data(
                     _session=Database.get_session(), claan=self.claan
                 )

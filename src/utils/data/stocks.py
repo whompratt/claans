@@ -67,7 +67,12 @@ def get_corporate_data(_session: Session, claan: Claan) -> Dict[str, float]:
     escrow_query = select(func.sum(Record.score)).where(Record.claan == company.claan)
     escrow = _session.execute(escrow_query).scalar_one()
 
-    quests_query = select(func.count()).select_from(Record).join(Task)
+    quests_query = (
+        select(func.count())
+        .select_from(Record)
+        .join(Task)
+        .where(Record.claan == company.claan)
+    )
     quests = _session.execute(quests_query).scalar_one()
 
     return {
