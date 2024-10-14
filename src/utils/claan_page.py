@@ -139,9 +139,8 @@ class ClaanPage:
                     )
                     st.metric(
                         label="Fortnight Number",
-                        value=st.session_state["fortnight_info"].get(
-                            "fortnight_number"
-                        ),
+                        value=st.session_state["fortnight_info"].get("fortnight_number")
+                        + 1,
                     )
                 with col_2:
                     st.metric(
