@@ -12,6 +12,7 @@ class Share(Base):
     __tablename__ = "shares"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    ipo: Mapped[bool] = mapped_column(nullable=False, default=True)
 
     instrument_id: Mapped[int] = mapped_column(
         ForeignKey("instruments.id", ondelete="CASCADE"), nullable=False

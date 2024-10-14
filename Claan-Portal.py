@@ -3,12 +3,13 @@ import pathlib
 import streamlit as st
 
 from src.models.claan import Claan
-from src.utils import data, stock_game
+from src.utils.data.scores import get_scores
+from src.utils.data.stocks import get_corporate_data
 from src.utils.database import Database
 
 
 def init_page() -> None:
-    st.set_page_config(page_title="Claan ChAAos", page_icon=":dragon:")
+    st.set_page_config(page_title="Claans Corporate Claash", page_icon=":dragon:")
 
     st.markdown(
         """<style>
@@ -21,10 +22,10 @@ def init_page() -> None:
 
     with Database.get_session() as session:
         if "scores" not in st.session_state:
-            st.session_state["scores"] = data.get_scores(_session=session)
+            st.session_state["scores"] = get_scores(_session=session)
         for claan in Claan:
             if f"data_{claan.name}" not in st.session_state:
-                st.session_state[f"data_{claan.name}"] = stock_game.get_corporate_data(
+                st.session_state[f"data_{claan.name}"] = get_corporate_data(
                     _session=session, claan=claan
                 )
         session.expunge_all()
@@ -39,7 +40,7 @@ def init_page() -> None:
                 st.image(str(path_img_logo))
         with col_header:
             st.header("Advancing Analytics")
-            st.subheader("Season 5 - Claan ???")
+            st.subheader("Season 5 - Corporate Claash")
     # --- HEADER ---#
 
     st.divider()
@@ -51,14 +52,16 @@ def init_page() -> None:
         cols = zip(Claan, st.columns(len(Claan)))
         for claan, col in cols:
             with col:
-                claan_img = pathlib.Path(
-                    f"./assets/images/{claan.name.lower()}_hex.png"
-                )
+                claan_img = pathlib.Path(f"./assets/images/{claan.name.lower()}.png")
                 if claan_img.exists():
                     st.image(str(claan_img))
 
                 st.metric(
-                    label="Funds",
+                    label="Share Price",
+                    value=f"${float(st.session_state[f"data_{claan.name}"]["instrument"] or 0.0)}",
+                )
+                st.metric(
+                    label="Stash",
                     value=f"${float(st.session_state[f"data_{claan.name}"]["funds"] or 0.0)}",
                 )
                 st.metric(
@@ -71,44 +74,60 @@ def init_page() -> None:
 
     # --- INFO --- #
     with st.container():
-        st.header("How It Works")
+        st.header("Claans - Corporate Claash")
+        st.subheader("Welcome")
         st.write(
-            "Claans and the Claan Competition exist to encourage a healthy work-life balance, promote practising self-care, and facilitate socialisation and cooperation within Advancing Analytics."
-        )
-        st.write(
-            "Every fortnight, a new set of quests and activities can be completed to get points for your Claan, and as everyone knows, 'Points Mean Prizes', so make sure to get those points logged!"
-        )
-
-        st.subheader("Quests")
-        st.write(
-            "Quests are the first way you can earn points for your Claan. Every fortnight, a set of 5 quests will be made available for completion."
-        )
-        st.write(
-            "Each quest will offer a dice as a reward, with the number of sides on the dice corresponding to the quest difficulty."
-        )
-        st.write(
-            "After completing a quest, the dice is automatically rolled and the result is added to your Claan's score."
-        )
-        st.write(
-            "D4-D10: quests with a reward between D4 and D10 can be completed _daily_, meaning there are a lot of points available!"
-        )
-        st.write(
-            "D12: quests with a reward of D12 are considered a 'Claan Challenge', and can only be submitted once per person per fortnight."
+            """
+Welcome to Season 5 of Claans, 'Corporate Claash', where this time we'll be fighting for financial dominance!
+            """
         )
 
-        st.subheader("Steps")
+        st.divider()
+
+        st.subheader("How it Works")
         st.write(
-            "Steps are back! If you complete 10,000 or more steps in a day, then you can submit that task and get a D4!"
+            """
+Every Claan is a corporation, and Claan Members are Board Members.
+\nEvery time you complete a quest you are given a reward which is then locked up in escrow.
+\nAt the end of each fortnight, Board Member votes will be tallied to decide whether those funds should go straight into the Claan's Stash, or divided amongst the shareholders.
+\nClaans that pay out enough money will see their share price increase, but those that withold will instead see it drop.
+            """
         )
 
-        st.subheader("Activities")
+        st.divider()
+
+        st.subheader("Claan Stock Market")
         st.write(
-            "Activites are back too! Every day you can earn points for being active, with a D6, D8, and D10 available for 45 minutes of indoor, outdoor, or team sport participation respectively."
-        )
-        st.write(
-            "The nature of these activities will change on a regular basis, to keep things fresh and interesting."
+            """
+Each Claan has been issues 50 shares initially, with 2 shares given to each Board Member, however, the Claan hasn't gone public yet!
+\nAs Claans reach a value threshold, they will become publicly listed and their shares will be available to purchase.
+\nBeware though! Initially all of a Claan's shares will be in IPO, and any funds that these shares would pay out are instead paid into the Claan stash!
+\n\nAs shares are bought, they will first come out of the IPO and enter the market.
+\nAs shares are sold, though, they instead go to the Bank, and any dividends these would pay are lost, so be careful!
+            """
         )
     # --- INFO --- #
+
+    # --- FAQ --- #
+    st.divider()
+    with st.container():
+        st.header("FAQ")
+
+        st.subheader("What happens if we vote 'Withold'?")
+        st.write(
+            "If a Claan votes to withold funds, then all money in escrow will go straight into the Stash, but shareholders won't receive any more and the share price will decrease."
+        )
+
+        st.subheader("What happens if we vote 'Payout'?")
+        st.write(
+            "If a Claan votes to payout funds, then all money in escrow will be divided and distributed amongst all shareholders, and if the money paid out is high enough, then share price will increase."
+        )
+
+        st.subheader("What does it means if shares are in IPO?")
+        st.write(
+            "Shares in IPO are owned by the Claan, so if the Claan votes to pay out, then dividends will be paid into the Claan's stash."
+        )
+    # --- FAQ --- #
 
 
 def main() -> None:

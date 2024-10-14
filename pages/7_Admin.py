@@ -4,17 +4,26 @@ import streamlit as st
 from src.models.claan import Claan
 from src.models.task_reward import TaskReward
 from src.models.user import User
-from src.utils import data
+from src.utils.data.scores import get_scores
+from src.utils.data.tasks import add_task, delete_task, get_tasks, set_active_task
+from src.utils.data.users import (
+    add_user,
+    delete_user,
+    get_claan_users,
+    get_users,
+    update_user,
+)
 from src.utils.database import Database, initialise
 
 
 def load_data():
     with Database.get_session() as session:
-        st.session_state["tasks"] = data.get_tasks(_session=session)
-        st.session_state["users"] = data.get_users(_session=session)
+        st.session_state["tasks"] = get_tasks(_session=session)
+        st.session_state["users"] = get_users(_session=session)
+        st.session_state["scores"] = get_scores(_session=session)
 
         for claan in Claan:
-            st.session_state[f"users_{claan}"] = data.get_claan_users(
+            st.session_state[f"users_{claan}"] = get_claan_users(
                 _session=session, claan=claan
             )
 
@@ -100,7 +109,7 @@ def update_user_form():
                 label="Submit",
                 key="update_user_button",
                 type="primary",
-                on_click=data.update_user,
+                on_click=update_user,
                 kwargs={"_session": Database.get_session()},
             )
 
@@ -131,7 +140,7 @@ def delete_user_form():
             "Submit",
             type="primary",
             disabled=not submit_enabled,
-            on_click=data.delete_user,
+            on_click=delete_user,
             kwargs={"_session": Database.get_session()},
         ):
             st.rerun()
@@ -155,7 +164,7 @@ def user_management() -> None:
                 )
                 st.form_submit_button(
                     label="Submit",
-                    on_click=data.add_user,
+                    on_click=add_user,
                     kwargs={"_session": Database.get_session()},
                 )
             update_user_form()
@@ -205,7 +214,7 @@ def set_active_task_form():
             label="Submit",
             key="set_active_task_submit",
             disabled=not (quest_reward and quest_selection),
-            on_click=data.set_active_task,
+            on_click=set_active_task,
             kwargs={"_session": Database.get_session()},
         ):
             st.rerun()
@@ -214,6 +223,23 @@ def set_active_task_form():
 def task_management() -> None:
     with st.container(border=True):
         st.subheader("Task Management")
+
+        with st.container(border=True):
+            st.header("Claan Info")
+            cols = st.columns(len(list(Claan)))
+            for claan in Claan:
+                with cols[list(Claan).index(claan)]:
+                    st.metric(
+                        label=claan.name,
+                        value=len(
+                            [
+                                user
+                                for user in st.session_state["users"]
+                                if user.claan == claan
+                            ]
+                        ),
+                    )
+                    st.metric(label="Score", value=st.session_state["scores"][claan])
 
         col_df, col_forms = st.columns(2)
 
@@ -248,7 +274,7 @@ def task_management() -> None:
                 )
                 st.form_submit_button(
                     label="Submit",
-                    on_click=data.add_task,
+                    on_click=add_task,
                     kwargs={"_session": Database.get_session()},
                 )
             with st.form(key="delete_task", clear_on_submit=True, border=True):
@@ -261,7 +287,7 @@ def task_management() -> None:
                 )
                 st.form_submit_button(
                     label="Submit",
-                    on_click=data.delete_task,
+                    on_click=delete_task,
                     kwargs={"_session": Database.get_session()},
                 )
 
