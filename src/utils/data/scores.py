@@ -67,14 +67,13 @@ def get_claan_data(_session: Session, claan: Claan):
 
 @st.cache_data(ttl=43200)
 def get_historical_data(_session: Session, claan: Claan) -> None:
-    season_start = get_season_start(_session=_session)
-
     query = (
         select(User.name, Task.description, Record.score, Record.timestamp)
-        .join(Record.user)
-        .join(Record.task)
+        .select_from(User)
+        .join(Record)
+        .join(Task)
         .where(Record.claan == claan)
-        .where(Record.timestamp >= season_start)
+        .where(Record.timestamp >= get_season_start(_session=_session))
         .order_by(Record.timestamp.desc())
     )
     records = _session.execute(query).all()
