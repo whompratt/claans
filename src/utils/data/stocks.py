@@ -84,24 +84,124 @@ def get_corporate_data(_session: Session, claan: Claan) -> Dict[str, float]:
 
 
 @st.cache_data(ttl=600)
-def get_shares(_session: Session, portfolio_id: int) -> List[Share]:
-    shares_query = (
-        select(Share, Instrument, Company)
-        .select_from(Share)
+def get_owned_shares(_session: Session, claan: Claan) -> Dict[int, Dict[Claan, int]]:
+    sq_earth = (
+        select(Share.owner_id)
         .join(Instrument)
         .join(Company)
-        .where(Share.owner_id == portfolio_id)
-    )
-    shares = _session.execute(shares_query).scalars().all()
+        .where(Company.claan == Claan.EARTH_STRIDERS)
+    ).subquery()
+    sq_fire = (
+        select(Share.owner_id)
+        .join(Instrument)
+        .join(Company)
+        .where(Company.claan == Claan.FIRE_DANCERS)
+    ).subquery()
+    sq_thunder = (
+        select(Share.owner_id)
+        .join(Instrument)
+        .join(Company)
+        .where(Company.claan == Claan.THUNDER_WALKERS)
+    ).subquery()
+    sq_wave = (
+        select(Share.owner_id)
+        .join(Instrument)
+        .join(Company)
+        .where(Company.claan == Claan.WAVE_RIDERS)
+    ).subquery()
+    sq_beast = (
+        select(Share.owner_id)
+        .join(Instrument)
+        .join(Company)
+        .where(Company.claan == Claan.BEAST_RUNNERS)
+    ).subquery()
+    sq_iron = (
+        select(Share.owner_id)
+        .join(Instrument)
+        .join(Company)
+        .where(Company.claan == Claan.IRON_STALKERS)
+    ).subquery()
 
-    result = [
-        {
-            "id": share.id,
-            "price": share.instrument.price,
-            "claan": share.instrument.company.claan,
+    query = (
+        select(
+            Portfolio.id.label("portfolio"),
+            func.count(sq_earth.c.owner_id).label("count_earth"),
+            func.count(sq_fire.c.owner_id).label("count_fire"),
+            func.count(sq_thunder.c.owner_id).label("count_thunder"),
+            func.count(sq_wave.c.owner_id).label("count_wave"),
+            func.count(sq_beast.c.owner_id).label("count_beast"),
+            func.count(sq_iron.c.owner_id).label("count_iron"),
+        )
+        .select_from(Portfolio)
+        .join(Company, onclause=Portfolio.company_id == Company.id)
+        .join(
+            sq_earth,
+            onclause=Portfolio.id == sq_earth.c.owner_id,
+            isouter=True,
+        )
+        .join(
+            sq_fire,
+            onclause=Portfolio.id == sq_fire.c.owner_id,
+            isouter=True,
+        )
+        .join(
+            sq_thunder,
+            onclause=Portfolio.id == sq_thunder.c.owner_id,
+            isouter=True,
+        )
+        .join(
+            sq_wave,
+            onclause=Portfolio.id == sq_wave.c.owner_id,
+            isouter=True,
+        )
+        .join(
+            sq_beast,
+            onclause=Portfolio.id == sq_beast.c.owner_id,
+            isouter=True,
+        )
+        .join(
+            sq_iron,
+            onclause=Portfolio.id == sq_iron.c.owner_id,
+            isouter=True,
+        )
+        .group_by(
+            Portfolio.id,
+        )
+        .where(Company.claan == claan)
+    )
+
+    response = _session.execute(query).all()
+    result = {
+        portfolio_id: {
+            Claan.EARTH_STRIDERS: {
+                "count": count_earth,
+            },
+            Claan.FIRE_DANCERS: {
+                "count": count_fire,
+            },
+            Claan.THUNDER_WALKERS: {
+                "count": count_thunder,
+            },
+            Claan.WAVE_RIDERS: {
+                "count": count_wave,
+            },
+            Claan.BEAST_RUNNERS: {
+                "count": count_beast,
+            },
+            Claan.IRON_STALKERS: {
+                "count": count_iron,
+            },
         }
-        for share in shares
-    ]
+        for (
+            portfolio_id,
+            count_earth,
+            count_fire,
+            count_thunder,
+            count_wave,
+            count_beast,
+            count_iron,
+        ) in [row.tuple() for row in response]
+    }
 
     return result
 
