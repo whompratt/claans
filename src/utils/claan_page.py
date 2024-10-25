@@ -53,12 +53,12 @@ class ClaanPage:
                     user.id: get_portfolio(session, user_id=user.id)
                     for user in st.session_state[f"users_{self.claan.name}"]
                 }
-            if f"shares_{self.claan.name}" not in st.session_state:
-                LOGGER.info(f"Loading `shares_{self.claan.name}`")
-                st.session_state[f"shares_{self.claan.name}"] = {
+            if f"owned_shares_{self.claan.name}" not in st.session_state:
+                LOGGER.info(f"Loading `owned_shares_{self.claan.name}`")
+                st.session_state[f"owned_shares_{self.claan.name}"] = {
                     portfolio_id: {
-                        this_claan: share_count
-                        for this_claan, share_count in data.items()
+                        claan: {key: value for key, value in data.items()}
+                        for claan, data in data.items()
                     }
                     for portfolio_id, data in get_owned_shares(
                         _session=session, claan=claan
@@ -239,13 +239,28 @@ class ClaanPage:
                             },
                         )
                         df_shares = pd.DataFrame.from_dict(
-                            data=st.session_state[f"shares_{self.claan.name}"][
+                            data=st.session_state[f"owned_shares_{self.claan.name}"][
                                 portfolio.id
                             ],
                             orient="index",
                         )
+                        df_shares.index.name = "Company"
+                        df_shares["price"] = df_shares["price"].map(
+                            lambda price: f"${price}"
+                        )
+                        df_shares["ticker"] = df_shares["ticker"].map(
+                            lambda ticker: str(ticker[0])
+                        )
                         df_shares.index = df_shares.index.map(
                             lambda claan: claan.name.title().replace("_", " ")
+                        )
+                        df_shares = df_shares[["ticker", "count", "price"]]
+                        df_shares = df_shares.rename(
+                            columns={
+                                "count": "Shares Owned",
+                                "price": "Price",
+                                "ticker": "Ticker",
+                            }
                         )
                         st.dataframe(data=df_shares, use_container_width=True)
 
