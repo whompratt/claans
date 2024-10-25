@@ -74,28 +74,44 @@ class Transaction(Base):
         self,
         value: float,
         operation: Operation,
-        instrument: Instrument | int,
+        instrument: Optional[Instrument | int],
         portfolio: Optional[Portfolio | int],
         company: Optional[Company | int],
         timestamp: Optional[datetime],
     ):
+        """Initialize a new Transaction object.
+
+        :param value: The float value of the transaction ($)
+        :param operation: The type of transaction performed, of type :class:`OperationType`, an enum
+
+        :param instrument: `optional` If relevant, which instrument this transaction was against
+        :param timestamp: `optional` An optional timestamp to set, defaulting to :meth:`datetime.now()` if None
+
+        :param company: Required if :param:`portfolio` is None, the company which is receiving or losing funds
+        :param portfolio: Required if :param:`company` is None, the portfoio which is receiving or losing funds
+        """
         self.value = value
         self.operation = operation
         self.timestamp = timestamp or datetime.now()
 
         if company and portfolio:
-            raise KeyError("Transaction must have company or portfolio BUT NOT BOTH")
+            raise ValueError("Transaction must have company or portfolio BUT NOT BOTH")
         if not company and not portfolio:
-            raise KeyError("Transaction must have company OR portfolio")
+            raise ValueError("Transaction must have company OR portfolio")
 
-        if isinstance(instrument, Instrument):
-            self.instrument_id = instrument.id
-        elif isinstance(instrument, int):
-            self.instrument_id = instrument
-        else:
-            raise TypeError(
-                "Transaction.instrument_id can only be initialized with a instrument object or an integer id"
+        if operation in [Operation.BUY, Operation.SELL] and not instrument:
+            raise ValueError(
+                "If operation is BUY or SELL instrument must be present in init"
             )
+        if instrument:
+            if isinstance(instrument, Instrument):
+                self.instrument_id = instrument.id
+            elif isinstance(instrument, int):
+                self.instrument_id = instrument
+            else:
+                raise ValueError(
+                    "Transaction.instrument_id can only be initialized with a instrument object or an integer id"
+                )
 
         if portfolio:
             if isinstance(portfolio, Portfolio):
@@ -103,16 +119,16 @@ class Transaction(Base):
             elif isinstance(portfolio, int):
                 self.portfolio_id = portfolio
             else:
-                raise TypeError(
+                raise ValueError(
                     "Transaction.portfolio_id can only be initialized with a portfolio object or an integer id"
                 )
 
         if company:
-            if isinstance(company, Portfolio):
+            if isinstance(company, Company):
                 self.company_id = company.id
             elif isinstance(company, int):
                 self.company_id = company
             else:
-                raise TypeError(
+                raise ValueError(
                     "Transaction.company_id can only be initialized with a company object or an integer id"
                 )
