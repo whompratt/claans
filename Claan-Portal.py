@@ -10,12 +10,18 @@ from src.utils.logger import LOGGER
 
 
 def init_page() -> None:
-    st.set_page_config(page_title="Claans Corporate Claash", page_icon=":dragon:")
+    st.set_page_config(
+        page_title="Claans Corporate Claash",
+        page_icon=":dragon:",
+    )
 
     st.markdown(
         """<style>
         .st-emotion-cache-15zws4i, .st-emotion-cache-1j7f08p {
             color: #F5F5F5
+        }
+        .st-emotion-cache-13ln4jf {
+            max-width: 60rem
         }
         </style>""",
         unsafe_allow_html=True,
@@ -52,25 +58,31 @@ def init_page() -> None:
     with st.container():
         st.header("Scores")
 
-        cols = zip(Claan, st.columns(len(Claan)))
+        cols = st.columns(int(len(Claan) / 2))
+        cols += cols
+        cols = zip(Claan, cols)
         for claan, col in cols:
             with col:
-                claan_img = pathlib.Path(f"./assets/images/{claan.name.lower()}.png")
-                if claan_img.exists():
-                    st.image(str(claan_img))
+                with st.container(border=True):
+                    claan_img = pathlib.Path(
+                        f"./assets/images/{claan.name.lower()}.png"
+                    )
+                    st.subheader(claan.value)
+                    if claan_img.exists():
+                        st.image(str(claan_img))
 
-                st.metric(
-                    label="Share Price",
-                    value=f"${float(st.session_state[f"data_{claan.name}"]["instrument"] or 0.0)}",
-                )
-                st.metric(
-                    label="Stash",
-                    value=f"${float(st.session_state[f"data_{claan.name}"]["funds"] or 0.0)}",
-                )
-                st.metric(
-                    label="Escrow",
-                    value=f"${float(st.session_state[f"data_{claan.name}"]["escrow"] or 0.0)}",
-                )
+                    st.metric(
+                        label="Share Price",
+                        value=f"${float(st.session_state[f"data_{claan.name}"]["instrument"] or 0.0)}",
+                    )
+                    st.metric(
+                        label="Stash",
+                        value=f"${float(st.session_state[f"data_{claan.name}"]["funds"] or 0.0)}",
+                    )
+                    st.metric(
+                        label="Escrow",
+                        value=f"${float(st.session_state[f"data_{claan.name}"]["escrow"] or 0.0)}",
+                    )
     # --- SCORES --- #
 
     st.divider()
