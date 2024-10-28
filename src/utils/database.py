@@ -4,12 +4,15 @@ from typing import Optional
 
 import streamlit as st
 import toml
+from faker import Faker
 from sqlalchemy import create_engine, func, select
 from sqlalchemy.engine import URL
 from sqlalchemy.engine.base import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
 from src.models.base import Base
+from src.models.task_reward import TaskReward
+from src.utils.logger import LOGGER
 
 
 class Database:
@@ -59,74 +62,59 @@ def initialise() -> None:
     Base.metadata.create_all(bind=Database.get_engine())
 
     with Database.get_session() as session, session.begin():
-        ## Default season
         with session.begin_nested():
+            LOGGER.info("Checking for default season...")
             query_season_count = select(func.count()).select_from(Season)
             season_count = session.scalar(query_season_count)
             if season_count == 0:
+                LOGGER.info("No default season, adding")
                 season = Season(name="Default", start_date=date(2024, 7, 29))
                 session.add(season)
 
+        # If no users, populate each Claan with 3 test users
+        with session.begin_nested():
+            LOGGER.info("Populating empty Claans with fake users...")
+            fake = Faker()
+            for claan in Claan:
+                query_cnt = (
+                    select(func.count()).select_from(User).where(User.claan == claan)
+                )
+                count = session.scalar(query_cnt)
+
+                if count < 1:
+                    LOGGER.info(f"Adding fake user for Claan {claan.name}")
+                    this_user = User(name=fake.name(), claan=claan)
+                    session.add(this_user)
+
         ## Assign a claan to users with no claan
         with session.begin_nested():
+            LOGGER.info("Checking for users with no Claan...")
             query = select(User).where(User.claan.is_(None))
-            print(query)
             users_with_no_claan = session.execute(query).scalars().all()
             for user in users_with_no_claan:
-                print(user.name)
+                LOGGER.warning(
+                    f"No Claan assigned to user {user.name} with id {user.id}"
+                )
 
-        # # If no users, populate each Claan with 3 test users
-        # with session.begin_nested():
-        #     fake = Faker()
-        #     for claan in Claan:
-        #         query_cnt = (
-        #             select(func.count()).select_from(User).where(User.claan == claan)
-        #         )
-        #         count = session.scalar(query_cnt)
-
-        #         if count < 1:
-        #             this_user = User(name=fake.name(), claan=claan)
-        #             session.add(this_user)
-
-        # # If no quests, populate with test quests for each die
-        # with session.begin_nested():
-        #     query_cnt = (
-        #         select(Task.dice, func.count())
-        #         .select_from(Task)
-        #         .where(Task.task_type == TaskType.QUEST)
-        #         .group_by(Task.dice)
-        #     )
-        #     result = session.execute(query_cnt).all()
-        #     quest_counts = {row.dice: row.count for row in result}
-        #     for die in Dice:
-        #         if quest_counts.get(die) is None:
-        #             quest = Task(
-        #                 description=f"Sample Quest {die.name}",
-        #                 task_type=TaskType.QUEST,
-        #                 dice=die,
-        #                 ephemeral=False,
-        #             )
-        #             session.add(quest)
-
-        # # If no activities, populate with test activities for each die bar D12
-        # with session.begin_nested():
-        #     query_cnt = (
-        #         select(Task.dice, func.count())
-        #         .select_from(Task)
-        #         .where(Task.task_type == TaskType.ACTIVITY)
-        #         .group_by(Task.dice)
-        #     )
-        #     result = session.execute(query_cnt).all()
-        #     activity_counts = {row.dice: row.count for row in result}
-        #     for die in [Dice.D4, Dice.D6, Dice.D8, Dice.D10]:
-        #         if activity_counts.get(die) is None:
-        #             activity = Task(
-        #                 description=f"Sample Activity {die.name}",
-        #                 task_type=TaskType.ACTIVITY,
-        #                 dice=die,
-        #                 ephemeral=False,
-        #             )
-        #             session.add(activity)
+        # If no quests, populate with test quests for each die
+        with session.begin_nested():
+            LOGGER.info("Populating tasks...")
+            query_cnt = (
+                select(Task.reward, func.count())
+                .select_from(Task)
+                .group_by(Task.reward)
+            )
+            result = session.execute(query_cnt).all()
+            quest_counts = {row.reward: row.count for row in result}
+            for reward in TaskReward:
+                if quest_counts.get(reward) is None:
+                    LOGGER.info(f"Adding sample quest for reward ${reward.value}")
+                    quest = Task(
+                        description=f"Sample Quest {reward.name}",
+                        reward=reward,
+                        ephemeral=False,
+                    )
+                    session.add(quest)
 
         pass
 

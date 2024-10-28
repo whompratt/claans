@@ -5,6 +5,13 @@ from src.models.claan import Claan
 from src.models.task_reward import TaskReward
 from src.models.user import User
 from src.utils.data.scores import get_scores
+from src.utils.data.stocks import (
+    delete_unowned_company_share,
+    get_all_shares,
+    get_instruments,
+    issue_company_share,
+    process_escrow,
+)
 from src.utils.data.tasks import add_task, delete_task, get_tasks, set_active_task
 from src.utils.data.users import (
     add_user,
@@ -17,15 +24,20 @@ from src.utils.database import Database, initialise
 
 
 def load_data():
-    with Database.get_session() as session:
-        st.session_state["tasks"] = get_tasks(_session=session)
-        st.session_state["users"] = get_users(_session=session)
-        st.session_state["scores"] = get_scores(_session=session)
+    if "db_session" not in st.session_state:
+        st.session_state["db_session"] = Database.get_session()
+    st.session_state["tasks"] = get_tasks(_session=st.session_state["db_session"])
+    st.session_state["users"] = get_users(_session=st.session_state["db_session"])
+    st.session_state["scores"] = get_scores(_session=st.session_state["db_session"])
+    st.session_state["instruments"] = get_instruments(
+        _session=st.session_state["db_session"]
+    )
+    st.session_state["shares"] = get_all_shares(_session=st.session_state["db_session"])
 
-        for claan in Claan:
-            st.session_state[f"users_{claan}"] = get_claan_users(
-                _session=session, claan=claan
-            )
+    for claan in Claan:
+        st.session_state[f"users_{claan}"] = get_claan_users(
+            _session=st.session_state["db_session"], claan=claan
+        )
 
 
 def refresh_data():
@@ -110,7 +122,7 @@ def update_user_form():
                 key="update_user_button",
                 type="primary",
                 on_click=update_user,
-                kwargs={"_session": Database.get_session()},
+                kwargs={"_session": st.session_state["db_session"]},
             )
 
 
@@ -141,7 +153,7 @@ def delete_user_form():
             type="primary",
             disabled=not submit_enabled,
             on_click=delete_user,
-            kwargs={"_session": Database.get_session()},
+            kwargs={"_session": st.session_state["db_session"]},
         ):
             st.rerun()
 
@@ -165,7 +177,7 @@ def user_management() -> None:
                 st.form_submit_button(
                     label="Submit",
                     on_click=add_user,
-                    kwargs={"_session": Database.get_session()},
+                    kwargs={"_session": st.session_state["db_session"]},
                 )
             update_user_form()
             delete_user_form()
@@ -215,7 +227,7 @@ def set_active_task_form():
             key="set_active_task_submit",
             disabled=not (quest_reward and quest_selection),
             on_click=set_active_task,
-            kwargs={"_session": Database.get_session()},
+            kwargs={"_session": st.session_state["db_session"]},
         ):
             st.rerun()
 
@@ -275,7 +287,7 @@ def task_management() -> None:
                 st.form_submit_button(
                     label="Submit",
                     on_click=add_task,
-                    kwargs={"_session": Database.get_session()},
+                    kwargs={"_session": st.session_state["db_session"]},
                 )
             with st.form(key="delete_task", clear_on_submit=True, border=True):
                 st.subheader("Delete Task")
@@ -288,7 +300,65 @@ def task_management() -> None:
                 st.form_submit_button(
                     label="Submit",
                     on_click=delete_task,
-                    kwargs={"_session": Database.get_session()},
+                    kwargs={"_session": st.session_state["db_session"]},
+                )
+
+
+def share_management() -> None:
+    with st.container(border=True):
+        st.header("Share Management")
+
+        with st.container(border=True):
+            cols = st.columns(len(st.session_state["instruments"]))
+            for instrument in st.session_state["instruments"]:
+                with cols[st.session_state["instruments"].index(instrument)]:
+                    st.metric(
+                        label=instrument.ticker,
+                        value=len(
+                            [
+                                share
+                                for share in st.session_state["shares"]
+                                if share.instrument_id == instrument.id
+                            ]
+                        ),
+                    )
+
+        instrument = st.selectbox(
+            label="Select Instrument",
+            key="instrument",
+            options=st.session_state["instruments"],
+            format_func=lambda instrument: instrument.ticker,
+            index=None,
+        )
+
+        if st.button(
+            label="Process Escrow",
+            key="process_escrow",
+        ):
+            process_escrow(_session=st.session_state["db_session"])
+
+        if instrument:
+            st.number_input(
+                label="Amount",
+                min_value=1,
+                max_value=50,
+                value=1,
+                step=1,
+                key="issue_amount",
+            )
+            if st.button(
+                label="Issue share",
+                key="issue_share",
+            ):
+                issue_company_share(
+                    _session=st.session_state["db_session"], instrument=instrument
+                )
+            if st.button(
+                label="Delete share",
+                key="delete_share",
+            ):
+                delete_unowned_company_share(
+                    _session=st.session_state["db_session"], instrument=instrument
                 )
 
 
@@ -314,6 +384,7 @@ def init_page() -> None:
 
         user_management()
         task_management()
+        share_management()
 
 
 if __name__ == "__main__":

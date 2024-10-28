@@ -19,7 +19,7 @@ def get_users(_session: Session) -> List[User]:
 
 @st.cache_data()
 def get_claan_users(_session: Session, claan: Claan) -> List[User]:
-    query = select(User).where(User.claan == claan)
+    query = select(User).where(User.claan == claan).order_by(User.name)
     result = _session.execute(query).scalars().all()
 
     return result
@@ -89,7 +89,7 @@ def update_user(_session: Session) -> User:
     if f"users_{st.session_state["update_user_claan"].name}" in st.session_state:
         LOGGER.info(f"Reload `users_{st.session_state["update_user_claan"].name}")
         get_claan_users.clear(claan=st.session_state["update_user_claan"])
-        if f"users_{st.session_state["update_user_claan"]}" in st.session_state:
+        if f"users_{st.session_state["update_user_claan"].name}" in st.session_state:
             st.session_state[f"users_{st.session_state["update_user_claan"]}"] = (
                 get_claan_users(
                     _session=_session, claan=st.session_state["update_user_claan"]

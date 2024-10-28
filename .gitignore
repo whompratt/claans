@@ -170,3 +170,4 @@ uv.lock
 
 *.ini
 temp/
+*dump.sql

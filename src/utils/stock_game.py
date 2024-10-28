@@ -3,7 +3,7 @@ from sqlalchemy import func, select
 from src.models.base import Base
 from src.models.claan import Claan
 from src.models.user import User
-from src.utils.data.stocks import issue_share
+from src.utils.data.stocks import grant_share_to_user
 from src.utils.database import Database
 from src.utils.logger import LOGGER
 
@@ -110,7 +110,7 @@ def main():
                     for _ in range(0, 2 - len(portfolio.shares)):
                         LOGGER.info(f"Issuing share to user {portfolio.user.name}")
                         with session.begin_nested():
-                            issue_share(_session=session, portfolio=portfolio)
+                            grant_share_to_user(_session=session, portfolio=portfolio)
 
         # ### Disabled currently as users will start with 0 dollars ###
         # ## Grant starting funds to users with no transactions
