@@ -8,10 +8,13 @@ from src.models.market.portfolio import BoardVote
 from src.utils.data.scores import get_historical_data, get_scores, submit_record
 from src.utils.data.seasons import get_fortnight_info
 from src.utils.data.stocks import (
+    buy_share,
     get_corporate_data,
+    get_instruments,
     get_ipo_count,
     get_owned_shares,
     get_portfolio,
+    sell_share,
     update_vote,
 )
 from src.utils.data.tasks import get_active_tasks
@@ -39,55 +42,64 @@ class ClaanPage:
             unsafe_allow_html=True,
         )
 
-        with Database.get_session() as session:
-            if "active_tasks" not in st.session_state:
-                LOGGER.info("Loading `active_tasks`")
-                st.session_state["active_tasks"] = get_active_tasks(_session=session)
-            if f"users_{self.claan.name}" not in st.session_state:
-                st.session_state[f"users_{self.claan.name}"] = get_claan_users(
-                    _session=session, claan=self.claan
-                )
-            if f"portfolios_{self.claan.name}" not in st.session_state:
-                LOGGER.info(f"Loading `portfolios_{self.claan.name}`")
-                st.session_state[f"portfolios_{self.claan.name}"] = {
-                    user.id: get_portfolio(session, user_id=user.id)
-                    for user in st.session_state[f"users_{self.claan.name}"]
-                }
-            if f"owned_shares_{self.claan.name}" not in st.session_state:
-                LOGGER.info(f"Loading `owned_shares_{self.claan.name}`")
-                st.session_state[f"owned_shares_{self.claan.name}"] = {
-                    portfolio_id: {
-                        claan: {key: value for key, value in data.items()}
-                        for claan, data in data.items()
-                    }
-                    for portfolio_id, data in get_owned_shares(
-                        _session=session, claan=claan
-                    ).items()
-                }
-            if f"ipo_{self.claan.name}" not in st.session_state:
-                LOGGER.info(f"Loading `ipo_{self.claan.name}`")
-                st.session_state[f"ipo_{self.claan.name}"] = get_ipo_count(
-                    session, self.claan
-                )
-            if "scores" not in st.session_state:
-                LOGGER.info("Loading `scores`")
-                st.session_state["scores"] = get_scores(_session=session)
-            if f"data_{self.claan.name}" not in st.session_state:
-                LOGGER.info(f"Loading `data_{self.claan.name}`")
-                st.session_state[f"data_{self.claan.name}"] = get_corporate_data(
-                    _session=session, claan=self.claan
-                )
-            if f"historical_{self.claan.name}" not in st.session_state:
-                LOGGER.info(f"Loading `historical_{self.claan.name}`")
-                st.session_state[f"historical_{self.claan.name}"] = get_historical_data(
-                    _session=session, claan=self.claan
-                )
-            if "fortnight_info" not in st.session_state:
-                LOGGER.info("Loading `fortnight_info`")
-                st.session_state["fortnight_info"] = get_fortnight_info(
-                    _session=session
-                )
-            session.expunge_all()
+        if "db_session" not in st.session_state:
+            st.session_state["db_session"] = Database.get_session()
+        if "active_tasks" not in st.session_state:
+            LOGGER.info("Loading `active_tasks`")
+            st.session_state["active_tasks"] = get_active_tasks(
+                _session=st.session_state["db_session"]
+            )
+        if f"users_{self.claan.name}" not in st.session_state:
+            st.session_state[f"users_{self.claan.name}"] = get_claan_users(
+                _session=st.session_state["db_session"], claan=self.claan
+            )
+        if f"portfolios_{self.claan.name}" not in st.session_state:
+            LOGGER.info(f"Loading `portfolios_{self.claan.name}`")
+            st.session_state[f"portfolios_{self.claan.name}"] = {
+                user.id: get_portfolio(st.session_state["db_session"], user_id=user.id)
+                for user in st.session_state[f"users_{self.claan.name}"]
+            }
+        # if f"owned_shares_{self.claan.name}" not in st.session_state:
+        LOGGER.info(f"Loading `owned_shares_{self.claan.name}`")
+        st.session_state[f"owned_shares_{self.claan.name}"] = {
+            portfolio_id: {
+                claan: {key: value for key, value in data.items()}
+                for claan, data in data.items()
+            }
+            for portfolio_id, data in get_owned_shares(
+                _session=st.session_state["db_session"], claan=claan
+            ).items()
+        }
+        if f"ipo_{self.claan.name}" not in st.session_state:
+            LOGGER.info(f"Loading `ipo_{self.claan.name}`")
+            st.session_state[f"ipo_{self.claan.name}"] = get_ipo_count(
+                st.session_state["db_session"], self.claan
+            )
+        if "scores" not in st.session_state:
+            LOGGER.info("Loading `scores`")
+            st.session_state["scores"] = get_scores(
+                _session=st.session_state["db_session"]
+            )
+        if f"data_{self.claan.name}" not in st.session_state:
+            LOGGER.info(f"Loading `data_{self.claan.name}`")
+            st.session_state[f"data_{self.claan.name}"] = get_corporate_data(
+                _session=st.session_state["db_session"], claan=self.claan
+            )
+        if f"historical_{self.claan.name}" not in st.session_state:
+            LOGGER.info(f"Loading `historical_{self.claan.name}`")
+            st.session_state[f"historical_{self.claan.name}"] = get_historical_data(
+                _session=st.session_state["db_session"], claan=self.claan
+            )
+        if "fortnight_info" not in st.session_state:
+            LOGGER.info("Loading `fortnight_info`")
+            st.session_state["fortnight_info"] = get_fortnight_info(
+                _session=st.session_state["db_session"]
+            )
+        if "instruments" not in st.session_state:
+            LOGGER.info("Loading `instruments`")
+            st.session_state["instruments"] = get_instruments(
+                _session=st.session_state["db_session"]
+            )
 
         self.build_page()
 
@@ -188,9 +200,9 @@ class ClaanPage:
             )
 
             if user:
-                col_task, col_portfolio = st.columns(2)
-                with col_task:
-                    with st.form(key="form_submit_task"):
+                col_left, col_right = st.columns(2)
+                with col_left:
+                    with st.form(key="form_submit_task", border=True):
                         st.header("Tasks")
 
                         st.radio(
@@ -204,11 +216,54 @@ class ClaanPage:
                             label="Submit",
                             on_click=submit_record,
                             kwargs={
-                                "_session": Database.get_session(),
+                                "_session": st.session_state["db_session"],
                             },
                         )
 
-                with col_portfolio:
+                    with st.container(border=True):
+                        st.header("Stock Market")
+                        instruments = st.session_state["instruments"]
+                        cols = st.columns(int(len(instruments) / 2))
+                        cols += cols
+                        cols = zip(instruments, cols)
+
+                        for instrument, col in cols:
+                            with col:
+                                st.metric(
+                                    label=instrument.ticker,
+                                    value=f"${instrument.price}",
+                                )
+                                if st.button(
+                                    label="BUY",
+                                    key=f"share_buy_{instrument}",
+                                ):
+                                    buy_share(
+                                        _session=st.session_state["db_session"],
+                                        portfolio=st.session_state[
+                                            f"portfolios_{self.claan.name}"
+                                        ][user.id],
+                                        instrument=instrument,
+                                    )
+                                    st.rerun()
+                                if st.button(
+                                    label="SELL",
+                                    key=f"share_sell_{instrument}",
+                                ):
+                                    sell_share(
+                                        _session=st.session_state["db_session"],
+                                        portfolio=st.session_state[
+                                            f"portfolios_{self.claan.name}"
+                                        ][user.id],
+                                        instrument=instrument,
+                                    )
+                                    st.rerun()
+
+                        st.write("Limited to 5 shares of each Company")
+                        st.write(
+                            "After selling a share, you can't buy that share again until next fortnight"
+                        )
+
+                with col_right:
                     st.session_state["portfolio"] = portfolio = st.session_state[
                         f"portfolios_{self.claan.name}"
                     ][user.id]
@@ -233,7 +288,7 @@ class ClaanPage:
                             label="Update Vote",
                             on_click=update_vote,
                             kwargs={
-                                "_session": Database.get_session(),
+                                "_session": st.session_state["db_session"],
                                 "_portfolio": portfolio,
                                 "_claan": self.claan,
                             },
@@ -272,7 +327,7 @@ class ClaanPage:
             ):
                 get_historical_data.clear(claan=self.claan)
                 st.session_state[f"historical_{self.claan.name}"] = get_historical_data(
-                    _session=Database.get_session(), claan=self.claan
+                    _session=st.session_state["db_session"], claan=self.claan
                 )
 
             df_historical = pd.DataFrame.from_records(
