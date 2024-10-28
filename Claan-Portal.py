@@ -27,17 +27,17 @@ def init_page() -> None:
         unsafe_allow_html=True,
     )
 
-    with Database.get_session() as session:
-        if "scores" not in st.session_state:
-            LOGGER.info("Loading `scores`")
-            st.session_state["scores"] = get_scores(_session=session)
-        for claan in Claan:
-            if f"data_{claan.name}" not in st.session_state:
-                LOGGER.info(f"Loading `data_{claan.name}`")
-                st.session_state[f"data_{claan.name}"] = get_corporate_data(
-                    _session=session, claan=claan
-                )
-        session.expunge_all()
+    if "db_session" not in st.session_state:
+        st.session_state["db_session"] = Database.get_session()
+    if "scores" not in st.session_state:
+        LOGGER.info("Loading `scores`")
+        st.session_state["scores"] = get_scores(_session=st.session_state["db_session"])
+    for claan in Claan:
+        if f"data_{claan.name}" not in st.session_state:
+            LOGGER.info(f"Loading `data_{claan.name}`")
+            st.session_state[f"data_{claan.name}"] = get_corporate_data(
+                _session=st.session_state["db_session"], claan=claan
+            )
 
     # --- HEADER --- #
     with st.container():
