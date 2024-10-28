@@ -1,8 +1,10 @@
+from datetime import datetime
 from decimal import Decimal, FloatOperation, getcontext
 from typing import Any, Dict, List
 
 import streamlit as st
 from sqlalchemy import func, select, update
+from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
 from src.models.claan import Claan
@@ -14,6 +16,7 @@ from src.models.market.transaction import Operation, Transaction
 from src.models.record import Record
 from src.models.task import Task
 from src.models.user import User
+from src.utils.data.seasons import get_fortnight_start
 from src.utils.logger import LOGGER
 
 
@@ -326,51 +329,163 @@ def get_ipo_count(_session: Session, claan: Claan) -> int:
     return ipo
 
 
-def buy_share(_session: Session, share: Share, portfolio: Portfolio) -> None:
-    instrument_query = select(Instrument).where(Instrument.id == share.instrument_id)
-    instrument = _session.execute(instrument_query).scalars().one()
+def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -> None:
+    with _session.begin_nested() as nested:
+        LOGGER.info("--- User Purchasing Share ---")
+        LOGGER.info(f"\tUser: {portfolio.user.name}")
+        LOGGER.info(f"\tCash: ${portfolio.cash}")
+        LOGGER.info(f"\tShare: 1x {instrument.ticker} @ {instrument.price}")
 
-    if share not in _session:
-        share = _session.get(Share, share.id)
+        fortnight_start = get_fortnight_start(_session=_session)
+        sold_already_query = (
+            select(func.count(Transaction.id))
+            .where(Transaction.timestamp >= fortnight_start)
+            .where(Transaction.portfolio_id == portfolio.id)
+            .where(Transaction.instrument_id == instrument.id)
+            .where(Transaction.operation == Operation.SELL)
+        )
+        sold_already = _session.execute(sold_already_query).scalar_one() != 0
 
-    if share.owner_id:
-        raise ShareAlreadyOwnedError
+        if sold_already:
+            LOGGER.warning(
+                f"User {portfolio.user.name} attempted to buy shares having already sold them this fortnight."
+            )
+            st.error(
+                "You've already sold shares in this company, so you can't buy more until next fortnight."
+            )
+            return
 
-    if portfolio not in _session:
-        portfolio = _session.get(Portfolio, portfolio.id)
+        owned_count = len(
+            [share for share in portfolio.shares if share.instrument == instrument]
+        )
 
-    if portfolio.cash < instrument.price:
-        raise CannotAffordError
+        if owned_count >= 5:
+            LOGGER.warning(
+                f"User {portfolio.user.name} attempted to buy shares in a company when they already own 5."
+            )
+            st.error("Can't own more than 5 shares of a single Company")
+            return
 
-    # TODO: Check ownership limits
-    # TODO: Check and deduct cash
+        if instrument.price > portfolio.cash:
+            LOGGER.warning(
+                f"User {portfolio.user.name} attempted to buy a share they can't afford (cash: ${portfolio.cash}, price: ${instrument.price})"
+            )
+            st.error("You don't have enough cash to buy that!")
+            return
 
-    with _session.begin_nested():
-        if instrument.ipo > 0:
-            instrument.ipo -= 1
+        share_ipo_query = (
+            select(Share)
+            .where(Share.instrument == instrument)
+            .where(Share.ipo)
+            .where(Share.owner_id.is_(None))
+            .limit(1)
+        )
 
+        try:
+            share = _session.execute(share_ipo_query).scalar_one()
+        except NoResultFound:
+            LOGGER.info("No shares found in IPO, will check non-IPO shares.")
+            share_query = (
+                select(Share)
+                .where(Share.instrument == instrument)
+                .where(Share.owner_id.is_(None))
+            )
+            try:
+                share = _session.execute(share_query).scalar_one()
+            except NoResultFound:
+                LOGGER.warning(
+                    f"User {portfolio.user.name} attempted to buy share but none left to buy."
+                )
+                st.error("No shares left to buy!")
+
+        LOGGER.info(
+            f"User {portfolio.user.name} buying {instrument.ticker}, successful. Saving..."
+        )
+        _session.add(
+            Transaction(
+                value=instrument.price,
+                operation=Operation.BUY,
+                instrument=instrument,
+                portfolio=portfolio,
+                company=None,
+                timestamp=datetime.now(),
+            )
+        )
         share.owner_id = portfolio.id
         portfolio.cash -= instrument.price
+
+        nested.commit()
+
+    get_portfolio.clear(user_id=portfolio.user_id)
+    if f"portfolios_{portfolio.company.claan.name}" in st.session_state:
+        LOGGER.info(f"Refreshing portfolios for {portfolio.company.claan.value}")
+        st.session_state[f"portfolios_{portfolio.company.claan.name}"][
+            portfolio.user_id
+        ] = get_portfolio(_session=_session, user_id=portfolio.user_id)
+
+    get_owned_shares(claan=portfolio.user.claan)
+    if f"owned_shares_{portfolio.user.claan.name}" in st.session_state:
+        LOGGER.info(f"Refreshing owned shares for {portfolio.user.claan.value}")
+        st.session_state[f"owned_shares_{portfolio.user.claan.name}"] = {
+            portfolio_id: {
+                claan: {key: value for key, value in data.items()}
+                for claan, data in data.items()
+            }
+            for portfolio_id, data in get_owned_shares(
+                _session=_session, claan=portfolio.user.claan
+            ).items()
+        }
 
     _session.commit()
 
 
-def sell_share(_session: Session, share: Share, portfolio: Portfolio) -> None:
-    instrument_query = select(Instrument).where(Instrument.id == share.instrument_id)
-    instrument = _session.execute(instrument_query).scalars().one()
+def sell_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -> None:
+    """Sell 1 share of the given instrument from the given portfolio."""
+    with _session.begin_nested() as nested:
+        LOGGER.info("--- User Selling Share ---")
+        LOGGER.info(f"\tUser: {portfolio.user.name}")
+        LOGGER.info(f"\tShare: 1x {instrument.ticker} @ {instrument.price}")
 
-    if share not in _session:
-        share = _session.get(Share, share.id)
+        owned_share_query = (
+            select(Share)
+            .where(Share.instrument_id == instrument.id)
+            .where(Share.owner_id == portfolio.id)
+            .limit(1)
+        )
+        try:
+            owned_share = _session.execute(owned_share_query).scalar_one()
+        except NoResultFound:
+            LOGGER.warning(
+                f"User {portfolio.user.name} attempted to sell a share they don't own."
+            )
+            st.error("You don't any shares of this company to sell.")
+            return
 
-    if share.owner_id != portfolio.id:
-        raise ShareNotOwnedError
-
-    if portfolio not in _session:
-        portfolio = _session.get(Portfolio, portfolio.id)
-
-    with _session.begin_nested():
-        share.owner_id = None
+        owned_share.owner_id = None
         portfolio.cash += instrument.price
+        instrument.price -= float(1)
+
+        nested.commit()
+
+    get_portfolio.clear(user_id=portfolio.user_id)
+    if f"portfolios_{portfolio.company.claan.name}" in st.session_state:
+        LOGGER.info(f"Refreshing portfolios for {portfolio.company.claan.value}")
+        st.session_state[f"portfolios_{portfolio.company.claan.name}"][
+            portfolio.user_id
+        ] = get_portfolio(_session=_session, user_id=portfolio.user_id)
+
+    get_owned_shares(claan=portfolio.user.claan)
+    if f"owned_shares_{portfolio.user.claan.name}" in st.session_state:
+        LOGGER.info(f"Refreshing owned shares for {portfolio.user.claan.value}")
+        st.session_state[f"owned_shares_{portfolio.user.claan.name}"] = {
+            portfolio_id: {
+                claan: {key: value for key, value in data.items()}
+                for claan, data in data.items()
+            }
+            for portfolio_id, data in get_owned_shares(
+                _session=_session, claan=portfolio.user.claan
+            ).items()
+        }
 
     _session.commit()
 
@@ -566,7 +681,7 @@ def withold(_session: Session, company: Company) -> None:
         )
         records = _session.execute(records_query).scalars().all()
         amount_in_escrow = sum([Decimal(record.score) for record in records])
-        LOGGER.info(f"\Amount in escrow: {amount_in_escrow}")
+        LOGGER.info(f"Amount in escrow: {amount_in_escrow}")
 
         LOGGER.info("Adding Claan vault transaction")
         _session.add(
