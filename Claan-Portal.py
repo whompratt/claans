@@ -29,6 +29,10 @@ def init_page() -> None:
 
     if "db_session" not in st.session_state:
         st.session_state["db_session"] = Database.get_session()
+    if st.session_state["db_session"].connection().closed:
+        st.session_state["db_session"] = Database.get_session()
+    if st.session_state["db_session"].in_nested_transaction():
+        st.session_state["db_session"].rollback()
     if "scores" not in st.session_state:
         LOGGER.info("Loading `scores`")
         st.session_state["scores"] = get_scores(_session=st.session_state["db_session"])
