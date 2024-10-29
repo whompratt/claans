@@ -52,6 +52,12 @@ class Database:
         Base.metadata.create_all(bind=engine)
         maker = sessionmaker(bind=engine, expire_on_commit=False)
 
+        session = maker()
+        if session.in_nested_transaction():
+            LOGGER.warning("New session in nested transaction, rolling back.")
+            nested_transaction = session.get_nested_transaction()
+            nested_transaction.rollback()
+
         return maker()
 
 

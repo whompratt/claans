@@ -10,6 +10,7 @@ from src.utils.data.stocks import (
     get_all_shares,
     get_instruments,
     issue_company_share,
+    issue_credit,
     process_escrow,
 )
 from src.utils.data.tasks import add_task, delete_task, get_tasks, set_active_task
@@ -336,6 +337,24 @@ def share_management() -> None:
             key="process_escrow",
         ):
             process_escrow(_session=st.session_state["db_session"])
+
+        credit_value = float(
+            st.number_input(
+                label="Credit amount",
+                min_value=1.0,
+                max_value=50.0,
+                value=10.0,
+                step=0.1,
+                key="issue_amount",
+            )
+        )
+        if st.button(
+            label="Issue Credit",
+            key="issue_credit",
+        ):
+            issue_credit(
+                _session=st.session_state["db_session"], value=round(credit_value, 2)
+            )
 
         if instrument:
             st.number_input(

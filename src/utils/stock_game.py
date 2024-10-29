@@ -176,7 +176,7 @@ def main():
         #     rows = session.execute(query).all()
 
         #     for row in rows:
-        #         (portfolio, user, instrument, trade_count) = row.tuple()
+        #         (portfolio, user, instrument, trade_count) = row._tuple()
 
         #         if trade_count == 0:
         #             LOGGER.info(

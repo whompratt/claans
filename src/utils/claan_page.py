@@ -44,57 +44,67 @@ class ClaanPage:
 
         if "db_session" not in st.session_state:
             st.session_state["db_session"] = Database.get_session()
+        if st.session_state["db_session"] is None:
+            st.session_state["db_session"] = Database.get_session()
+        if st.session_state["db_session"].connection().closed:
+            st.session_state["db_session"] = Database.get_session()
+        if st.session_state["db_session"].in_transaction():
+            st.session_state["db_session"].rollback()
+
         if "active_tasks" not in st.session_state:
             LOGGER.info("Loading `active_tasks`")
             st.session_state["active_tasks"] = get_active_tasks(
                 _session=st.session_state["db_session"]
             )
+
         if f"users_{self.claan.name}" not in st.session_state:
             st.session_state[f"users_{self.claan.name}"] = get_claan_users(
                 _session=st.session_state["db_session"], claan=self.claan
             )
+
         if f"portfolios_{self.claan.name}" not in st.session_state:
             LOGGER.info(f"Loading `portfolios_{self.claan.name}`")
             st.session_state[f"portfolios_{self.claan.name}"] = {
                 user.id: get_portfolio(st.session_state["db_session"], user_id=user.id)
                 for user in st.session_state[f"users_{self.claan.name}"]
             }
+
         # if f"owned_shares_{self.claan.name}" not in st.session_state:
         LOGGER.info(f"Loading `owned_shares_{self.claan.name}`")
-        st.session_state[f"owned_shares_{self.claan.name}"] = {
-            portfolio_id: {
-                claan: {key: value for key, value in data.items()}
-                for claan, data in data.items()
-            }
-            for portfolio_id, data in get_owned_shares(
-                _session=st.session_state["db_session"], claan=claan
-            ).items()
-        }
+        st.session_state[f"owned_shares_{self.claan.name}"] = get_owned_shares(
+            _session=st.session_state["db_session"], claan=self.claan
+        )
+
         if f"ipo_{self.claan.name}" not in st.session_state:
             LOGGER.info(f"Loading `ipo_{self.claan.name}`")
             st.session_state[f"ipo_{self.claan.name}"] = get_ipo_count(
                 st.session_state["db_session"], self.claan
             )
+
         if "scores" not in st.session_state:
             LOGGER.info("Loading `scores`")
             st.session_state["scores"] = get_scores(
                 _session=st.session_state["db_session"]
             )
+
         if f"data_{self.claan.name}" not in st.session_state:
             LOGGER.info(f"Loading `data_{self.claan.name}`")
             st.session_state[f"data_{self.claan.name}"] = get_corporate_data(
                 _session=st.session_state["db_session"], claan=self.claan
             )
+
         if f"historical_{self.claan.name}" not in st.session_state:
             LOGGER.info(f"Loading `historical_{self.claan.name}`")
             st.session_state[f"historical_{self.claan.name}"] = get_historical_data(
                 _session=st.session_state["db_session"], claan=self.claan
             )
+
         if "fortnight_info" not in st.session_state:
             LOGGER.info("Loading `fortnight_info`")
             st.session_state["fortnight_info"] = get_fortnight_info(
                 _session=st.session_state["db_session"]
             )
+
         if "instruments" not in st.session_state:
             LOGGER.info("Loading `instruments`")
             st.session_state["instruments"] = get_instruments(
@@ -200,6 +210,8 @@ class ClaanPage:
             )
 
             if user:
+                portfolio = st.session_state[f"portfolios_{self.claan.name}"][user.id]
+
                 col_left, col_right = st.columns(2)
                 with col_left:
                     with st.form(key="form_submit_task", border=True):
@@ -222,6 +234,9 @@ class ClaanPage:
 
                     with st.container(border=True):
                         st.header("Stock Market")
+                        st.write(
+                            "Owned shares update is bugged - please refresh after buying or selling to see numbers."
+                        )
                         instruments = st.session_state["instruments"]
                         cols = st.columns(int(len(instruments) / 2))
                         cols += cols
@@ -232,6 +247,14 @@ class ClaanPage:
                                 st.metric(
                                     label=instrument.ticker,
                                     value=f"${instrument.price}",
+                                )
+                                st.metric(
+                                    label="Owned",
+                                    value=st.session_state[
+                                        f"owned_shares_{self.claan.name}"
+                                    ][portfolio.id][instrument.company.claan][
+                                        "owned_count"
+                                    ],
                                 )
                                 if st.button(
                                     label="BUY",
@@ -244,7 +267,6 @@ class ClaanPage:
                                         ][user.id],
                                         instrument=instrument,
                                     )
-                                    st.rerun()
                                 if st.button(
                                     label="SELL",
                                     key=f"share_sell_{instrument}",
@@ -256,7 +278,6 @@ class ClaanPage:
                                         ][user.id],
                                         instrument=instrument,
                                     )
-                                    st.rerun()
 
                         st.write("Limited to 5 shares of each Company")
                         st.write(
@@ -303,16 +324,13 @@ class ClaanPage:
                         df_shares["price"] = df_shares["price"].map(
                             lambda price: f"${price}"
                         )
-                        df_shares["ticker"] = df_shares["ticker"].map(
-                            lambda ticker: str(ticker[0])
-                        )
                         df_shares.index = df_shares.index.map(
                             lambda claan: claan.name.title().replace("_", " ")
                         )
-                        df_shares = df_shares[["ticker", "count", "price"]]
+                        df_shares = df_shares[["ticker", "owned_count", "price"]]
                         df_shares = df_shares.rename(
                             columns={
-                                "count": "Shares Owned",
+                                "owned_count": "Shares Owned",
                                 "price": "Price",
                                 "ticker": "Ticker",
                             }
