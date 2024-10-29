@@ -1,9 +1,9 @@
 from datetime import datetime
 from decimal import Decimal, FloatOperation, getcontext
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import streamlit as st
-from sqlalchemy import func, select, update
+from sqlalchemy import func, inspect, select, update
 from sqlalchemy.exc import NoResultFound
 from sqlalchemy.orm import Session
 
@@ -17,6 +17,7 @@ from src.models.record import Record
 from src.models.task import Task
 from src.models.user import User
 from src.utils.data.seasons import get_fortnight_start
+from src.utils.database import Database
 from src.utils.logger import LOGGER
 
 
@@ -93,147 +94,92 @@ def get_corporate_data(_session: Session, claan: Claan) -> Dict[str, float]:
 
 
 @st.cache_data(ttl=600)
-def get_owned_shares(
-    _session: Session, claan: Claan
-) -> Dict[int, Dict[Claan, Dict[str, Any]]]:
-    sq_earth = (
-        select(Share.owner_id)
-        .join(Instrument)
-        .join(Company)
-        .where(Company.claan == Claan.EARTH_STRIDERS)
-    ).subquery()
-    sq_fire = (
-        select(Share.owner_id)
-        .join(Instrument)
-        .join(Company)
-        .where(Company.claan == Claan.FIRE_DANCERS)
-    ).subquery()
-    sq_thunder = (
-        select(Share.owner_id)
-        .join(Instrument)
-        .join(Company)
-        .where(Company.claan == Claan.THUNDER_WALKERS)
-    ).subquery()
-    sq_wave = (
-        select(Share.owner_id)
-        .join(Instrument)
-        .join(Company)
-        .where(Company.claan == Claan.WAVE_RIDERS)
-    ).subquery()
-    sq_beast = (
-        select(Share.owner_id)
-        .join(Instrument)
-        .join(Company)
-        .where(Company.claan == Claan.BEAST_RUNNERS)
-    ).subquery()
-    sq_iron = (
-        select(Share.owner_id)
-        .join(Instrument)
-        .join(Company)
-        .where(Company.claan == Claan.IRON_STALKERS)
-    ).subquery()
+def get_owned_shares(_session: Session, claan: Claan) -> Dict[int, Dict[Claan, int]]:
+    """Returns count of owned shares for each user in a Claan.
 
-    shares_query = (
+    Return format is a set of nested dicts in the following format:
+
+    .. return-format::
+
+        .. code-block:: python
+
+            {
+                <portfolio_id>: {
+                    <claan_1>: {
+                        "owned_count": <owned_count>,
+                        "ticker": <instrument_ticker>,
+                        "price": <instrument_price>,
+                    },
+                    ...
+                },
+                ...
+            }
+    """
+    # Collect relevant portfolios
+    portfolios_query = select(Portfolio).join(User).where(User.claan == claan)
+    portfolios = _session.execute(portfolios_query).scalars().all()
+
+    # Build empty result dict using portfolios
+    result = {
+        portfolio.id: {
+            user_claan: {
+                "owned_count": 0,
+            }
+            for user_claan in Claan
+        }
+        for portfolio in portfolios
+    }
+
+    # Parse instrument details
+    instruments_query = (
+        select(Instrument.ticker, Instrument.price, Company.claan)
+        .join(Company)
+        .order_by(Instrument.id)
+    )
+    instruments = _session.execute(instruments_query).all()
+    for row in instruments:
+        (ticker, share_price, share_claan) = row._tuple()
+        for portfolio_id, data in result.items():
+            for user_claan, data in data.items():
+                result[portfolio_id][share_claan]["ticker"] = ticker
+                result[portfolio_id][share_claan]["price"] = share_price
+
+    # Get owned share counts
+    sq_owned_shares = (
+        select(Share.owner_id, Company.claan)
+        .select_from(Share)
+        .join(Instrument)
+        .join(Company)
+        .where(Share.owner_id.is_not(None))
+    ).subquery()
+    owned_shares_query = (
         select(
-            Portfolio.id.label("portfolio"),
-            func.count(sq_earth.c.owner_id).label("count_earth"),
-            func.count(sq_fire.c.owner_id).label("count_fire"),
-            func.count(sq_thunder.c.owner_id).label("count_thunder"),
-            func.count(sq_wave.c.owner_id).label("count_wave"),
-            func.count(sq_beast.c.owner_id).label("count_beast"),
-            func.count(sq_iron.c.owner_id).label("count_iron"),
+            Portfolio.id.label("portfolio_id"),
+            sq_owned_shares.c.claan.label("claan"),
+            func.count(sq_owned_shares.c.claan).label("owned_count"),
         )
         .select_from(Portfolio)
-        .join(Company, onclause=Portfolio.company_id == Company.id)
-        .join(
-            sq_earth,
-            onclause=Portfolio.id == sq_earth.c.owner_id,
-            isouter=True,
-        )
-        .join(
-            sq_fire,
-            onclause=Portfolio.id == sq_fire.c.owner_id,
-            isouter=True,
-        )
-        .join(
-            sq_thunder,
-            onclause=Portfolio.id == sq_thunder.c.owner_id,
-            isouter=True,
-        )
-        .join(
-            sq_wave,
-            onclause=Portfolio.id == sq_wave.c.owner_id,
-            isouter=True,
-        )
-        .join(
-            sq_beast,
-            onclause=Portfolio.id == sq_beast.c.owner_id,
-            isouter=True,
-        )
-        .join(
-            sq_iron,
-            onclause=Portfolio.id == sq_iron.c.owner_id,
-            isouter=True,
+        .join(User, onclause=User.id == Portfolio.user_id)
+        .outerjoin(
+            sq_owned_shares,
+            onclause=Portfolio.id == sq_owned_shares.c.owner_id,
         )
         .group_by(
             Portfolio.id,
+            sq_owned_shares.c.claan,
         )
-        .where(Company.claan == claan)
+        .where(User.claan == claan)
+        .order_by(Portfolio.id)
     )
+    owned_shares = _session.execute(owned_shares_query).all()
 
-    shares = _session.execute(shares_query).all()
-
-    result = {
-        portfolio_id: {
-            Claan.EARTH_STRIDERS: {
-                "count": count_earth,
-            },
-            Claan.FIRE_DANCERS: {
-                "count": count_fire,
-            },
-            Claan.THUNDER_WALKERS: {
-                "count": count_thunder,
-            },
-            Claan.WAVE_RIDERS: {
-                "count": count_wave,
-            },
-            Claan.BEAST_RUNNERS: {
-                "count": count_beast,
-            },
-            Claan.IRON_STALKERS: {
-                "count": count_iron,
-            },
-        }
-        for (
-            portfolio_id,
-            count_earth,
-            count_fire,
-            count_thunder,
-            count_wave,
-            count_beast,
-            count_iron,
-        ) in [row.tuple() for row in shares]
-    }
-
-    instruments_query = (
-        select(Instrument.id, Company.claan, Instrument.price, Instrument.ticker)
-        .select_from(Instrument)
-        .join(Company)
-    )
-    instruments = _session.execute(instruments_query).all()
-
-    for _, data in result.items():
-        for claan in data:
-            data[claan]["price"] = [
-                instrument.tuple()[2]
-                for instrument in instruments
-                if instrument.tuple()[1] == claan
-            ][0]
-            data[claan]["ticker"] = [
-                instrument.tuple()[3]
-                for instrument in instruments
-                if instrument.tuple()[1] == claan
-            ]
+    # Parse share query results
+    for row in owned_shares:
+        (portfolio_id, share_claan, owned_count) = row._tuple()
+        if not portfolio_id or not share_claan or not owned_count:
+            LOGGER.warning("Return from owned shares shows 'None' value, skipping")
+            continue
+        result[portfolio_id][share_claan]["owned_count"] = owned_count
 
     return result
 
@@ -330,6 +276,13 @@ def get_ipo_count(_session: Session, claan: Claan) -> int:
 
 
 def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -> None:
+    if inspect(instrument).detached:
+        LOGGER.warning("Input instrument detached from session")
+        instrument = _session.merge(instrument)
+    if inspect(portfolio).detached:
+        LOGGER.warning("Input portfolio detached from session")
+        portfolio = _session.merge(portfolio)
+
     with _session.begin_nested() as nested:
         LOGGER.info("--- User Purchasing Share ---")
         LOGGER.info(f"\tUser: {portfolio.user.name}")
@@ -358,6 +311,7 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
         owned_count = len(
             [share for share in portfolio.shares if share.instrument == instrument]
         )
+        LOGGER.warning(f"User owns: {owned_count}")
 
         if owned_count >= 5:
             LOGGER.warning(
@@ -423,23 +377,24 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
             portfolio.user_id
         ] = get_portfolio(_session=_session, user_id=portfolio.user_id)
 
-    get_owned_shares(claan=portfolio.user.claan)
+    get_owned_shares.clear(claan=portfolio.user.claan)
     if f"owned_shares_{portfolio.user.claan.name}" in st.session_state:
         LOGGER.info(f"Refreshing owned shares for {portfolio.user.claan.value}")
-        st.session_state[f"owned_shares_{portfolio.user.claan.name}"] = {
-            portfolio_id: {
-                claan: {key: value for key, value in data.items()}
-                for claan, data in data.items()
-            }
-            for portfolio_id, data in get_owned_shares(
-                _session=_session, claan=portfolio.user.claan
-            ).items()
-        }
+        st.session_state[f"owned_shares_{portfolio.user.claan.name}"] = (
+            get_owned_shares(_session=_session, claan=portfolio.user.claan)
+        )
 
     _session.commit()
 
 
 def sell_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -> None:
+    if inspect(instrument).detached:
+        LOGGER.warning("Input instrument detached from session")
+        instrument = _session.merge(instrument)
+    if inspect(portfolio).detached:
+        LOGGER.warning("Input portfolio detached from session")
+        portfolio = _session.merge(portfolio)
+
     """Sell 1 share of the given instrument from the given portfolio."""
     with _session.begin_nested() as nested:
         LOGGER.info("--- User Selling Share ---")
@@ -461,9 +416,20 @@ def sell_share(_session: Session, portfolio: Portfolio, instrument: Instrument) 
             st.error("You don't any shares of this company to sell.")
             return
 
+        new_transaction = Transaction(
+            value=instrument.price,
+            operation=Operation.SELL,
+            instrument=instrument,
+            portfolio=portfolio,
+            company=None,
+            timestamp=None,
+        )
+        LOGGER.warning(new_transaction.id)
+        _session.add(new_transaction)
+
         owned_share.owner_id = None
         portfolio.cash += instrument.price
-        instrument.price -= float(1)
+        instrument.price = round(instrument.price - float(0.1), 2)
 
         nested.commit()
 
@@ -474,24 +440,18 @@ def sell_share(_session: Session, portfolio: Portfolio, instrument: Instrument) 
             portfolio.user_id
         ] = get_portfolio(_session=_session, user_id=portfolio.user_id)
 
-    get_owned_shares(claan=portfolio.user.claan)
+    get_owned_shares.clear(claan=portfolio.user.claan)
     if f"owned_shares_{portfolio.user.claan.name}" in st.session_state:
         LOGGER.info(f"Refreshing owned shares for {portfolio.user.claan.value}")
-        st.session_state[f"owned_shares_{portfolio.user.claan.name}"] = {
-            portfolio_id: {
-                claan: {key: value for key, value in data.items()}
-                for claan, data in data.items()
-            }
-            for portfolio_id, data in get_owned_shares(
-                _session=_session, claan=portfolio.user.claan
-            ).items()
-        }
+        st.session_state[f"owned_shares_{portfolio.user.claan.name}"] = (
+            get_owned_shares(_session=_session, claan=portfolio.user.claan)
+        )
 
     _session.commit()
 
 
 def get_instruments(_session: Session) -> List[Instrument]:
-    instruments_query = select(Instrument)
+    instruments_query = select(Instrument).order_by(Instrument.id)
     instruments = _session.execute(instruments_query).scalars().all()
 
     return instruments
@@ -618,7 +578,7 @@ def payout(_session: Session, company: Company) -> None:
 
         LOGGER.info("Adding shareholder dividend transactions...")
         for row in owned_shares:
-            (portfolio, owned_count) = row.tuple()
+            (portfolio, owned_count) = row._tuple()
             new_transactions.append(
                 Transaction(
                     value=float(cash_per_share * owned_count),
@@ -714,3 +674,39 @@ def withold(_session: Session, company: Company) -> None:
         _session.flush()
 
         print("")
+
+
+def issue_credit(_session: Session, value: float):
+    LOGGER.info(f"Issuing credit of ${value:.2f} to every portfolio.")
+    with _session.begin_nested():
+        portfolios = _session.execute(select(Portfolio)).scalars().all()
+
+        new_transactions = []
+        for portfolio in portfolios:
+            new_transactions.append(
+                Transaction(
+                    value=value,
+                    operation=Operation.CREDIT,
+                    instrument=None,
+                    portfolio=portfolio,
+                    company=None,
+                    timestamp=None,
+                )
+            )
+            portfolio.cash = round(portfolio.cash + value, 2)
+        _session.add_all(new_transactions)
+
+    get_portfolio.clear()
+    for claan in Claan:
+        if f"portfolios_{claan.name}" in st.session_state:
+            st.session_state[f"portfolios_{claan.name}"] = {
+                user.id: get_portfolio(_session=_session, user_id=user.id)
+                for user in st.session_state[f"users_{claan.name}"]
+            }
+
+    _session.commit()
+
+
+if __name__ == "__main__":
+    session = Database.get_session()
+    get_owned_shares(_session=session, claan=Claan.WAVE_RIDERS)
