@@ -705,6 +705,7 @@ def issue_credit(_session: Session, value: float):
             }
 
     _session.commit()
+    LOGGER.info("Complete credit issue")
 
 
 if __name__ == "__main__":
