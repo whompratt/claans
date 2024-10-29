@@ -345,7 +345,7 @@ def share_management() -> None:
                 max_value=50.0,
                 value=10.0,
                 step=0.1,
-                key="issue_amount",
+                key="credit_amount",
             )
         )
         if st.button(
