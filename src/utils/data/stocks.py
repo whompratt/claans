@@ -351,6 +351,7 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
                     f"User {portfolio.user.name} attempted to buy share but none left to buy."
                 )
                 st.error("No shares left to buy!")
+                return
 
         LOGGER.info(
             f"User {portfolio.user.name} buying {instrument.ticker}, successful. Saving..."
