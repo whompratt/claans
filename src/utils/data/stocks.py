@@ -242,15 +242,15 @@ def grant_share_to_user(_session: Session, portfolio: Portfolio) -> None:
 
 
 @st.cache_data(ttl=600)
-def get_shares_for_sale(_session: Session, instrument_id: int) -> List[Share]:
+def get_shares_for_sale(_session: Session, instrument_id: int) -> int:
     share_query = (
-        select(Share)
-        .where(not Share.owner_id)
+        select(func.count(Share.id))
+        .where(Share.owner_id.is_(None))
         .where(Share.instrument_id == instrument_id)
     )
-    shares = _session.execute(share_query).scalars().all()
+    count = _session.execute(share_query).scalar_one()
 
-    return shares
+    return count
 
 
 def get_all_shares(_session: Session) -> List[Share]:

@@ -14,6 +14,7 @@ from src.utils.data.stocks import (
     get_ipo_count,
     get_owned_shares,
     get_portfolio,
+    get_shares_for_sale,
     sell_share,
     update_vote,
 )
@@ -110,6 +111,16 @@ class ClaanPage:
             st.session_state["instruments"] = get_instruments(
                 _session=st.session_state["db_session"]
             )
+
+        if "for_sale_count" not in st.session_state:
+            LOGGER.info("Loading `for_sale_count`")
+            st.session_state["for_sale_count"] = {
+                instrument: get_shares_for_sale(
+                    _session=st.session_state["db_session"],
+                    instrument_id=instrument.id,
+                )
+                for instrument in st.session_state["instruments"]
+            }
 
         self.build_page()
 
@@ -256,6 +267,12 @@ class ClaanPage:
                                         "owned_count"
                                     ],
                                 )
+                                st.metric(
+                                    label="For sale",
+                                    value=st.session_state["for_sale_count"][
+                                        instrument
+                                    ],
+                                )
                                 if st.button(
                                     label="BUY",
                                     key=f"share_buy_{instrument}",
@@ -288,7 +305,7 @@ class ClaanPage:
                     st.session_state["portfolio"] = portfolio = st.session_state[
                         f"portfolios_{self.claan.name}"
                     ][user.id]
-                    with st.form(key="form_activities"):
+                    with st.form(key="form_wallet"):
                         st.header("Wallet")
                         st.metric(
                             label="Wallet Cash",
