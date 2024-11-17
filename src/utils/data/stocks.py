@@ -367,6 +367,7 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
             )
         )
         share.owner_id = portfolio.id
+        share.ipo = False
         portfolio.cash -= instrument.price
 
         nested.commit()
