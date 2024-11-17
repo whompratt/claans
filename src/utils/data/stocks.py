@@ -491,7 +491,7 @@ def process_escrow(_session: Session) -> None:
         if results[BoardVote.PAYOUT] >= results[BoardVote.WITHOLD]:
             payout(_session, company)
         else:
-            withold(_session, company)
+            withhold(_session, company)
 
         LOGGER.info("Clearing relevant function caches and reloading data")
 
@@ -627,7 +627,7 @@ def payout(_session: Session, company: Company) -> None:
         print("")
 
 
-def withold(_session: Session, company: Company) -> None:
+def withhold(_session: Session, company: Company) -> None:
     decimal_context = getcontext()
     decimal_context.prec = 28  # if result of round would require higher precision than this to represent, then exception is raised, hence high value
     decimal_context.traps[FloatOperation] = True

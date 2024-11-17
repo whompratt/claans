@@ -296,13 +296,13 @@ class ClaanPage:
                         )
                         st.metric(
                             label="Current Vote",
-                            value=portfolio.board_vote.name.title(),
+                            value=str(portfolio.board_vote).title(),
                         )
                         st.radio(
                             label="Board Vote",
                             key="portfolio_vote",
                             options=list(BoardVote),
-                            format_func=lambda vote_type: vote_type.name.title(),
+                            format_func=lambda vote_type: str(vote_type).title(),
                             index=list(BoardVote).index(portfolio.board_vote),
                         )
                         st.form_submit_button(
