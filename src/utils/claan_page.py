@@ -278,26 +278,26 @@ class ClaanPage:
                                         label="BUY",
                                         key=f"share_buy_{instrument}",
                                     ):
-                                        buy_share(
+                                        if buy_share(
                                             _session=st.session_state["db_session"],
                                             portfolio=st.session_state[
                                                 f"portfolios_{self.claan.name}"
                                             ][user.id],
                                             instrument=instrument,
-                                        )
-                                        st.rerun()
+                                        ):
+                                            st.rerun()
                                     if st.button(
                                         label="SELL",
                                         key=f"share_sell_{instrument}",
                                     ):
-                                        sell_share(
+                                        if sell_share(
                                             _session=st.session_state["db_session"],
                                             portfolio=st.session_state[
                                                 f"portfolios_{self.claan.name}"
                                             ][user.id],
                                             instrument=instrument,
-                                        )
-                                        st.rerun()
+                                        ):
+                                            st.rerun()
 
                         st.write("Limited to 5 shares of each Company")
                         st.write(
