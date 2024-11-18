@@ -255,46 +255,47 @@ class ClaanPage:
 
                         for instrument, col in cols:
                             with col:
-                                st.metric(
-                                    label=instrument.ticker,
-                                    value=f"${instrument.price}",
-                                )
-                                st.metric(
-                                    label="Owned",
-                                    value=st.session_state[
-                                        f"owned_shares_{self.claan.name}"
-                                    ][portfolio.id][instrument.company.claan][
-                                        "owned_count"
-                                    ],
-                                )
-                                st.metric(
-                                    label="For sale",
-                                    value=st.session_state["for_sale_count"][
-                                        instrument
-                                    ],
-                                )
-                                if st.button(
-                                    label="BUY",
-                                    key=f"share_buy_{instrument}",
-                                ):
-                                    buy_share(
-                                        _session=st.session_state["db_session"],
-                                        portfolio=st.session_state[
-                                            f"portfolios_{self.claan.name}"
-                                        ][user.id],
-                                        instrument=instrument,
+                                with st.container(border=True):
+                                    st.metric(
+                                        label=instrument.ticker,
+                                        value=f"${instrument.price}",
                                     )
-                                if st.button(
-                                    label="SELL",
-                                    key=f"share_sell_{instrument}",
-                                ):
-                                    sell_share(
-                                        _session=st.session_state["db_session"],
-                                        portfolio=st.session_state[
-                                            f"portfolios_{self.claan.name}"
-                                        ][user.id],
-                                        instrument=instrument,
+                                    st.metric(
+                                        label="Owned",
+                                        value=st.session_state[
+                                            f"owned_shares_{self.claan.name}"
+                                        ][portfolio.id][instrument.company.claan][
+                                            "owned_count"
+                                        ],
                                     )
+                                    st.metric(
+                                        label="For sale",
+                                        value=st.session_state["for_sale_count"][
+                                            instrument
+                                        ],
+                                    )
+                                    if st.button(
+                                        label="BUY",
+                                        key=f"share_buy_{instrument}",
+                                    ):
+                                        buy_share(
+                                            _session=st.session_state["db_session"],
+                                            portfolio=st.session_state[
+                                                f"portfolios_{self.claan.name}"
+                                            ][user.id],
+                                            instrument=instrument,
+                                        )
+                                    if st.button(
+                                        label="SELL",
+                                        key=f"share_sell_{instrument}",
+                                    ):
+                                        sell_share(
+                                            _session=st.session_state["db_session"],
+                                            portfolio=st.session_state[
+                                                f"portfolios_{self.claan.name}"
+                                            ][user.id],
+                                            instrument=instrument,
+                                        )
 
                         st.write("Limited to 5 shares of each Company")
                         st.write(
