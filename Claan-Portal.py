@@ -109,7 +109,7 @@ Welcome to Season 5 of Claans, 'Corporate Claash', where this time we'll be figh
 Every Claan is a corporation, and Claan Members are Board Members.
 \nEvery time you complete a quest you are given a reward which is then locked up in escrow.
 \nAt the end of each fortnight, Board Member votes will be tallied to decide whether those funds should go straight into the Claan's Stash, or divided amongst the shareholders.
-\nClaans that pay out enough money will see their share price increase, but those that withold will instead see it drop.
+\nClaans that pay out enough money will see their share price increase, but those that withhold will instead see it drop.
             """
         )
 
@@ -132,9 +132,9 @@ Each Claan has been issues 50 shares initially, with 2 shares given to each Boar
     with st.container():
         st.header("FAQ")
 
-        st.subheader("What happens if we vote 'Withold'?")
+        st.subheader("What happens if we vote 'Withhold'?")
         st.write(
-            "If a Claan votes to withold funds, then all money in escrow will go straight into the Stash, but shareholders won't receive any more and the share price will decrease."
+            "If a Claan votes to withhold funds, then all money in escrow will go straight into the Stash, but shareholders won't receive any more and the share price will decrease."
         )
 
         st.subheader("What happens if we vote 'Payout'?")

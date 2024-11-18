@@ -87,8 +87,8 @@ def get_corporate_data(_session: Session, claan: Claan) -> Dict[str, float]:
 
     return {
         "instrument": instrument,
-        "funds": funds,
-        "escrow": escrow,
+        "funds": round(funds or 0.0, 2),
+        "escrow": round(escrow or 0.0, 2),
         "task_count": quests,
     }
 
@@ -242,15 +242,15 @@ def grant_share_to_user(_session: Session, portfolio: Portfolio) -> None:
 
 
 @st.cache_data(ttl=600)
-def get_shares_for_sale(_session: Session, instrument_id: int) -> List[Share]:
+def get_shares_for_sale(_session: Session, instrument_id: int) -> int:
     share_query = (
-        select(Share)
-        .where(not Share.owner_id)
+        select(func.count(Share.id))
+        .where(Share.owner_id.is_(None))
         .where(Share.instrument_id == instrument_id)
     )
-    shares = _session.execute(share_query).scalars().all()
+    count = _session.execute(share_query).scalar_one()
 
-    return shares
+    return count
 
 
 def get_all_shares(_session: Session) -> List[Share]:
@@ -275,7 +275,7 @@ def get_ipo_count(_session: Session, claan: Claan) -> int:
     return ipo
 
 
-def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -> None:
+def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -> bool:
     if inspect(instrument).detached:
         LOGGER.warning("Input instrument detached from session")
         instrument = _session.merge(instrument)
@@ -306,7 +306,7 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
             st.error(
                 "You've already sold shares in this company, so you can't buy more until next fortnight."
             )
-            return
+            return False
 
         owned_count = len(
             [share for share in portfolio.shares if share.instrument == instrument]
@@ -318,14 +318,14 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
                 f"User {portfolio.user.name} attempted to buy shares in a company when they already own 5."
             )
             st.error("Can't own more than 5 shares of a single Company")
-            return
+            return False
 
         if instrument.price > portfolio.cash:
             LOGGER.warning(
                 f"User {portfolio.user.name} attempted to buy a share they can't afford (cash: ${portfolio.cash}, price: ${instrument.price})"
             )
             st.error("You don't have enough cash to buy that!")
-            return
+            return False
 
         share_ipo_query = (
             select(Share)
@@ -351,6 +351,7 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
                     f"User {portfolio.user.name} attempted to buy share but none left to buy."
                 )
                 st.error("No shares left to buy!")
+                return False
 
         LOGGER.info(
             f"User {portfolio.user.name} buying {instrument.ticker}, successful. Saving..."
@@ -366,6 +367,7 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
             )
         )
         share.owner_id = portfolio.id
+        share.ipo = False
         portfolio.cash -= instrument.price
 
         nested.commit()
@@ -384,10 +386,18 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
             get_owned_shares(_session=_session, claan=portfolio.user.claan)
         )
 
+    get_shares_for_sale.clear(instrument_id=instrument.id)
+    if "for_sale_count" in st.session_state:
+        LOGGER.info(f"Refreshing shares for sale count for {instrument.ticker}")
+        st.session_state["for_sale_count"][instrument] = get_shares_for_sale(
+            _session=st.session_state["db_session"], instrument_id=instrument.id
+        )
+
     _session.commit()
+    return True
 
 
-def sell_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -> None:
+def sell_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -> bool:
     if inspect(instrument).detached:
         LOGGER.warning("Input instrument detached from session")
         instrument = _session.merge(instrument)
@@ -414,7 +424,7 @@ def sell_share(_session: Session, portfolio: Portfolio, instrument: Instrument) 
                 f"User {portfolio.user.name} attempted to sell a share they don't own."
             )
             st.error("You don't any shares of this company to sell.")
-            return
+            return False
 
         new_transaction = Transaction(
             value=instrument.price,
@@ -447,7 +457,15 @@ def sell_share(_session: Session, portfolio: Portfolio, instrument: Instrument) 
             get_owned_shares(_session=_session, claan=portfolio.user.claan)
         )
 
+    get_shares_for_sale.clear(instrument_id=instrument.id)
+    if "for_sale_count" in st.session_state:
+        LOGGER.info(f"Refreshing shares for sale count for {instrument.ticker}")
+        st.session_state["for_sale_count"][instrument] = get_shares_for_sale(
+            _session=st.session_state["db_session"], instrument_id=instrument.id
+        )
+
     _session.commit()
+    return True
 
 
 def get_instruments(_session: Session) -> List[Instrument]:
@@ -489,7 +507,7 @@ def process_escrow(_session: Session) -> None:
         if results[BoardVote.PAYOUT] >= results[BoardVote.WITHOLD]:
             payout(_session, company)
         else:
-            withold(_session, company)
+            withhold(_session, company)
 
         LOGGER.info("Clearing relevant function caches and reloading data")
 
@@ -625,7 +643,7 @@ def payout(_session: Session, company: Company) -> None:
         print("")
 
 
-def withold(_session: Session, company: Company) -> None:
+def withhold(_session: Session, company: Company) -> None:
     decimal_context = getcontext()
     decimal_context.prec = 28  # if result of round would require higher precision than this to represent, then exception is raised, hence high value
     decimal_context.traps[FloatOperation] = True

@@ -18,6 +18,12 @@ class BoardVote(Enum):
     WITHOLD = 2
     PAYOUT = 3
 
+    def __str__(self):
+        if self == BoardVote.WITHOLD:
+            return "WITHHOLD"
+        else:
+            return self.name
+
 
 class Portfolio(Base):
     __tablename__ = "portfolios"

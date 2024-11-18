@@ -14,6 +14,7 @@ from src.utils.data.stocks import (
     get_ipo_count,
     get_owned_shares,
     get_portfolio,
+    get_shares_for_sale,
     sell_share,
     update_vote,
 )
@@ -110,6 +111,16 @@ class ClaanPage:
             st.session_state["instruments"] = get_instruments(
                 _session=st.session_state["db_session"]
             )
+
+        if "for_sale_count" not in st.session_state:
+            LOGGER.info("Loading `for_sale_count`")
+            st.session_state["for_sale_count"] = {
+                instrument: get_shares_for_sale(
+                    _session=st.session_state["db_session"],
+                    instrument_id=instrument.id,
+                )
+                for instrument in st.session_state["instruments"]
+            }
 
         self.build_page()
 
@@ -244,40 +255,49 @@ class ClaanPage:
 
                         for instrument, col in cols:
                             with col:
-                                st.metric(
-                                    label=instrument.ticker,
-                                    value=f"${instrument.price}",
-                                )
-                                st.metric(
-                                    label="Owned",
-                                    value=st.session_state[
-                                        f"owned_shares_{self.claan.name}"
-                                    ][portfolio.id][instrument.company.claan][
-                                        "owned_count"
-                                    ],
-                                )
-                                if st.button(
-                                    label="BUY",
-                                    key=f"share_buy_{instrument}",
-                                ):
-                                    buy_share(
-                                        _session=st.session_state["db_session"],
-                                        portfolio=st.session_state[
-                                            f"portfolios_{self.claan.name}"
-                                        ][user.id],
-                                        instrument=instrument,
+                                with st.container(border=True):
+                                    st.metric(
+                                        label=instrument.ticker,
+                                        value=f"${instrument.price}",
                                     )
-                                if st.button(
-                                    label="SELL",
-                                    key=f"share_sell_{instrument}",
-                                ):
-                                    sell_share(
-                                        _session=st.session_state["db_session"],
-                                        portfolio=st.session_state[
-                                            f"portfolios_{self.claan.name}"
-                                        ][user.id],
-                                        instrument=instrument,
+                                    st.metric(
+                                        label="Owned",
+                                        value=st.session_state[
+                                            f"owned_shares_{self.claan.name}"
+                                        ][portfolio.id][instrument.company.claan][
+                                            "owned_count"
+                                        ],
                                     )
+                                    st.metric(
+                                        label="For sale",
+                                        value=st.session_state["for_sale_count"][
+                                            instrument
+                                        ],
+                                    )
+                                    if st.button(
+                                        label="BUY",
+                                        key=f"share_buy_{instrument}",
+                                    ):
+                                        if buy_share(
+                                            _session=st.session_state["db_session"],
+                                            portfolio=st.session_state[
+                                                f"portfolios_{self.claan.name}"
+                                            ][user.id],
+                                            instrument=instrument,
+                                        ):
+                                            st.rerun()
+                                    if st.button(
+                                        label="SELL",
+                                        key=f"share_sell_{instrument}",
+                                    ):
+                                        if sell_share(
+                                            _session=st.session_state["db_session"],
+                                            portfolio=st.session_state[
+                                                f"portfolios_{self.claan.name}"
+                                            ][user.id],
+                                            instrument=instrument,
+                                        ):
+                                            st.rerun()
 
                         st.write("Limited to 5 shares of each Company")
                         st.write(
@@ -288,7 +308,7 @@ class ClaanPage:
                     st.session_state["portfolio"] = portfolio = st.session_state[
                         f"portfolios_{self.claan.name}"
                     ][user.id]
-                    with st.form(key="form_activities"):
+                    with st.form(key="form_wallet"):
                         st.header("Wallet")
                         st.metric(
                             label="Wallet Cash",
@@ -296,13 +316,13 @@ class ClaanPage:
                         )
                         st.metric(
                             label="Current Vote",
-                            value=portfolio.board_vote.name.title(),
+                            value=str(portfolio.board_vote).title(),
                         )
                         st.radio(
                             label="Board Vote",
                             key="portfolio_vote",
                             options=list(BoardVote),
-                            format_func=lambda vote_type: vote_type.name.title(),
+                            format_func=lambda vote_type: str(vote_type).title(),
                             index=list(BoardVote).index(portfolio.board_vote),
                         )
                         st.form_submit_button(
