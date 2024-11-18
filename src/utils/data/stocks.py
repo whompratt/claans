@@ -87,8 +87,8 @@ def get_corporate_data(_session: Session, claan: Claan) -> Dict[str, float]:
 
     return {
         "instrument": instrument,
-        "funds": funds,
-        "escrow": escrow,
+        "funds": round(funds or 0.0, 2),
+        "escrow": round(escrow or 0.0, 2),
         "task_count": quests,
     }
 
@@ -384,6 +384,13 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
         LOGGER.info(f"Refreshing owned shares for {portfolio.user.claan.value}")
         st.session_state[f"owned_shares_{portfolio.user.claan.name}"] = (
             get_owned_shares(_session=_session, claan=portfolio.user.claan)
+        )
+
+    get_shares_for_sale.clear(instrument_id=instrument.id)
+    if "for_sale_count" in st.session_state:
+        LOGGER.info(f"Refreshing shares for sale count for {instrument.ticker}")
+        st.session_state["for_sale_count"][instrument] = get_shares_for_sale(
+            _session=st.session_state["db_session"], instrument_id=instrument.id
         )
 
     _session.commit()
