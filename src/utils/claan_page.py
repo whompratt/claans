@@ -285,6 +285,7 @@ class ClaanPage:
                                             ][user.id],
                                             instrument=instrument,
                                         )
+                                        st.rerun()
                                     if st.button(
                                         label="SELL",
                                         key=f"share_sell_{instrument}",
@@ -296,6 +297,7 @@ class ClaanPage:
                                             ][user.id],
                                             instrument=instrument,
                                         )
+                                        st.rerun()
 
                         st.write("Limited to 5 shares of each Company")
                         st.write(
