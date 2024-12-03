@@ -343,6 +343,7 @@ def buy_share(_session: Session, portfolio: Portfolio, instrument: Instrument) -
                 select(Share)
                 .where(Share.instrument == instrument)
                 .where(Share.owner_id.is_(None))
+                .limit(1)
             )
             try:
                 share = _session.execute(share_query).scalar_one()
