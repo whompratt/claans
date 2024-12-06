@@ -17,6 +17,7 @@ from src.models.record import Record
 from src.models.task import Task
 from src.models.user import User
 from src.utils.data.seasons import get_fortnight_start
+from src.utils.data.users import add_user as users_add_user
 from src.utils.database import Database
 from src.utils.logger import LOGGER
 
@@ -725,6 +726,19 @@ def issue_credit(_session: Session, value: float):
 
     _session.commit()
     LOGGER.info("Complete credit issue")
+
+
+def add_user(_session: Session) -> User:
+    user = users_add_user(_session)
+
+    company_query = select(Company).where(Company.claan == user.claan)
+    company = _session.execute(company_query).scalar_one()
+
+    portfolio = Portfolio(user, company)
+    portfolio.cash = 50.0
+    _session.add(portfolio)
+
+    _session.commit()
 
 
 if __name__ == "__main__":
