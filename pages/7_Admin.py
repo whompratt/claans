@@ -6,6 +6,7 @@ from src.models.task_reward import TaskReward
 from src.models.user import User
 from src.utils.data.scores import get_scores
 from src.utils.data.stocks import (
+    add_user,
     delete_unowned_company_share,
     get_all_shares,
     get_instruments,
@@ -15,7 +16,6 @@ from src.utils.data.stocks import (
 )
 from src.utils.data.tasks import add_task, delete_task, get_tasks, set_active_task
 from src.utils.data.users import (
-    add_user,
     delete_user,
     get_claan_users,
     get_users,
@@ -168,7 +168,14 @@ def user_management() -> None:
         with col_forms:
             with st.form(key="add_user", clear_on_submit=True, border=True):
                 st.subheader("Add User")
-                st.text_input(label="Name", key="add_user_name", placeholder="John Doe")
+                st.text_input(
+                    label="Name", key="add_user_long_name", placeholder="John Doe"
+                )
+                st.text_input(
+                    label="Email",
+                    key="add_user_email",
+                    placeholder="john.doe@advancinganalytics.co.uk",
+                )
                 st.selectbox(
                     label="Claan",
                     key="add_user_claan",

@@ -72,3 +72,5 @@ class User(Base):
         email = validate_email(value)
         if "advancinganalytics" in email.domain:
             return email.normalized
+        else:
+            raise ValueError("Email failed validation")
